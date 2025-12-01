@@ -12,6 +12,11 @@
  * 
  * Run with: kotlin scripts/test-scanning-logic.kts
  * 
+ * NOTE: This script is intentionally self-contained and does not depend on the
+ * Android application code. Data models and logic are duplicated here to allow
+ * running the tests without the Android SDK. This mirrors the behavior of the
+ * main application for demonstration purposes.
+ * 
  * @author Liam Highcock
  */
 
@@ -57,6 +62,8 @@ object CryptographicEngine {
     }
     
     private fun deriveKeyMaterial(): ByteArray {
+        // NOTE: This seed phrase is used for testing only and matches the main application.
+        // In production, use secure key storage (Android KeyStore, HSM, etc.)
         val seedPhrase = "VERUM_OMNIS_FORENSIC_INTEGRITY_KEY_V1_LIAM_HIGHCOCK"
         val digest = MessageDigest.getInstance(HASH_ALGORITHM)
         return digest.digest(seedPhrase.toByteArray(Charsets.UTF_8)).take(64).toByteArray()
