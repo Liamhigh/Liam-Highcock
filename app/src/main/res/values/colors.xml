@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SAPS Official Colors -->
+    <color name="saps_blue">#003366</color>
+    <color name="saps_blue_dark">#002244</color>
+    <color name="saps_blue_light">#335588</color>
+    
+    <!-- Accent Colors -->
+    <color name="saps_gold">#FFD700</color>
+    <color name="saps_green">#228B22</color>
+    <color name="saps_red">#DC143C</color>
+    
+    <!-- Status Colors -->
+    <color name="status_open">#4CAF50</color>
+    <color name="status_in_progress">#2196F3</color>
+    <color name="status_closed">#9E9E9E</color>
+    
+    <!-- Background Colors -->
+    <color name="background_light">#F5F5F5</color>
+    <color name="background_card">#FFFFFF</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+</resources>
