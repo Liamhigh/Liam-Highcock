@@ -1,0 +1,90 @@
+{
+  "version": "5.1.1",
+  "legal_subjects": [
+    {
+      "name": "Shareholder Oppression",
+      "keywords": ["denied meeting", "withheld financial", "exclusion", "minority shareholder"],
+      "severity": "HIGH"
+    },
+    {
+      "name": "Breach of Fiduciary Duty",
+      "keywords": ["self-dealing", "conflict of interest", "misappropriation", "breach of duty"],
+      "severity": "HIGH"
+    },
+    {
+      "name": "Cybercrime",
+      "keywords": ["unauthorized access", "hacking", "device logs", "data breach"],
+      "severity": "CRITICAL"
+    },
+    {
+      "name": "Fraud",
+      "keywords": ["forged", "false representation", "deception", "misrepresentation"],
+      "severity": "CRITICAL"
+    },
+    {
+      "name": "Contract Breach",
+      "keywords": ["breach of contract", "non-performance", "failure to deliver"],
+      "severity": "HIGH"
+    }
+  ],
+  "dishonesty_matrix": {
+    "contradictions": {
+      "weight": 3,
+      "examples": ["Opposing statements vs evidence"],
+      "patterns": [
+        "no deal.*invoice",
+        "denied.*admitted",
+        "refused.*accepted",
+        "never.*always"
+      ]
+    },
+    "omissions": {
+      "weight": 2,
+      "examples": ["Cropped screenshots", "Missing context"],
+      "patterns": [
+        "selective.*edit",
+        "missing.*context",
+        "cropped.*screenshot",
+        "partial.*document"
+      ]
+    },
+    "manipulations": {
+      "weight": 3,
+      "examples": ["Altered documents", "Modified timestamps"],
+      "patterns": [
+        "modified.*original",
+        "altered.*date",
+        "changed.*text"
+      ]
+    }
+  },
+  "extraction_protocol": {
+    "step1_keywords": [
+      "admin", "deny", "forged", "access", "delete",
+      "refuse", "invoice", "profit", "transfer", "payment"
+    ],
+    "step2_tags": [
+      "#Cybercrime", "#Fraud", "#Oppression", "#FiduciaryBreach",
+      "#ContractBreach", "#Manipulation", "#Concealment"
+    ],
+    "step3_scoring": {
+      "low": {"weight": 1, "color": "#4CAF50"},
+      "medium": {"weight": 2, "color": "#FF9800"},
+      "high": {"weight": 3, "color": "#F44336"}
+    }
+  },
+  "behavioral_patterns": {
+    "evasion": {
+      "indicators": ["refuse", "ignore", "deflect", "avoid", "later"],
+      "weight": 2
+    },
+    "gaslighting": {
+      "indicators": ["never happened", "imagining", "crazy", "mistaken", "confused"],
+      "weight": 3
+    },
+    "concealment": {
+      "indicators": ["delete", "erase", "remove", "lost", "forgot", "destroyed"],
+      "weight": 3
+    }
+  }
+}

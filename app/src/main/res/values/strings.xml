@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Verum Omnis Forensic</string>
+    <string name="tagline">AI Forensics for Truth</string>
+    <string name="version">v1.0.0</string>
+    
+    <!-- Constitutional Governance -->
+    <string name="constitution_active">Constitutional Governance: ACTIVE</string>
+    <string name="constitution_version">5.1.1</string>
+    
+    <!-- Case Management -->
+    <string name="create_case">Create Case</string>
+    <string name="case_name">Case Name</string>
+    <string name="case_description">Description</string>
+    <string name="no_cases">No Cases Yet</string>
+    <string name="create_case_hint">Create a new forensic case to get started</string>
+    
+    <!-- Evidence -->
+    <string name="add_evidence">Add Evidence</string>
+    <string name="document">Document</string>
+    <string name="photo">Photo</string>
+    <string name="note">Note</string>
+    <string name="sealed">SEALED</string>
+    <string name="unsealed">UNSEALED</string>
+    
+    <!-- Reports -->
+    <string name="generate_report">Generate Report</string>
+    <string name="verify_integrity">Verify Integrity</string>
+    <string name="share_report">Share Report</string>
+    <string name="save_report">Save Report</string>
+    
+    <!-- Status -->
+    <string name="status_open">OPEN</string>
+    <string name="status_sealed">SEALED</string>
+    <string name="status_reported">REPORTED</string>
+    <string name="status_archived">ARCHIVED</string>
+    
+    <!-- Forensic Standards -->
+    <string name="hash_standard">SHA-512</string>
+    <string name="pdf_standard">PDF 1.7</string>
+    <string name="watermark">VERUM OMNIS FORENSIC SEAL</string>
+</resources>

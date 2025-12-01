@@ -1,0 +1,74 @@
+{
+  "version": "1.0",
+  "b1_chronology": {
+    "enabled": true,
+    "gap_threshold_hours": 48,
+    "confidence_minimum": 0.7
+  },
+  "b2_contradictions": {
+    "enabled": true,
+    "severity_weights": {
+      "direct_opposite": 3,
+      "factual_discrepancy": 2,
+      "omission": 1,
+      "timeline_break": 3,
+      "behavioral_mismatch": 2
+    }
+  },
+  "b3_evidence_gaps": {
+    "enabled": true,
+    "expected_evidence_types": [
+      "contract",
+      "invoice",
+      "bank_statement",
+      "email",
+      "meeting_minutes"
+    ]
+  },
+  "b4_timeline_manipulation": {
+    "enabled": true,
+    "modification_threshold_hours": 24,
+    "backdating_check": true
+  },
+  "b5_behavioral_patterns": {
+    "enabled": true,
+    "pattern_types": [
+      "evasion",
+      "gaslighting",
+      "concealment",
+      "deflection",
+      "contradiction"
+    ],
+    "threshold": 0.7
+  },
+  "b6_financial_correlation": {
+    "enabled": true,
+    "amount_tolerance_percentage": 5
+  },
+  "b7_communication_patterns": {
+    "enabled": true,
+    "response_time_anomaly_hours": 48,
+    "deletion_rate_threshold": 0.1
+  },
+  "b8_jurisdictional_compliance": {
+    "enabled": true,
+    "supported_jurisdictions": ["UAE", "UK", "EU", "US", "SA"]
+  },
+  "b9_integrity_scoring": {
+    "enabled": true,
+    "categories": {
+      "excellent": {"min": 90, "max": 100},
+      "good": {"min": 70, "max": 89},
+      "fair": {"min": 50, "max": 69},
+      "poor": {"min": 25, "max": 49},
+      "compromised": {"min": 0, "max": 24}
+    },
+    "penalties": {
+      "contradiction": 10,
+      "timeline_anomaly": 8,
+      "behavioral_pattern": 6,
+      "evidence_gap": 5,
+      "compliance_violation": 7
+    }
+  }
+}
