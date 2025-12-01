@@ -13,6 +13,24 @@ if ! command -v java &> /dev/null; then
     exit 1
 fi
 
+# Check for ANDROID_HOME or ANDROID_SDK_ROOT
+if [ -z "$ANDROID_HOME" ] && [ -z "$ANDROID_SDK_ROOT" ]; then
+    echo "⚠️  ANDROID_HOME not set. Checking if local.properties exists..."
+    if [ ! -f "local.properties" ]; then
+        echo "❌ local.properties not found and ANDROID_HOME not set."
+        echo "   Please set ANDROID_HOME or create local.properties with:"
+        echo "   sdk.dir=/path/to/your/android/sdk"
+        exit 1
+    fi
+else
+    # Create local.properties if it doesn't exist
+    if [ ! -f "local.properties" ]; then
+        SDK_PATH="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+        echo "sdk.dir=$SDK_PATH" > local.properties
+        echo "📍 Created local.properties with SDK path: $SDK_PATH"
+    fi
+fi
+
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
 ./gradlew clean
