@@ -6,9 +6,15 @@ on:
   pull_request:
     branches: [ main ]
 
+# Minimal permissions for security
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout repository
@@ -60,6 +66,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout repository

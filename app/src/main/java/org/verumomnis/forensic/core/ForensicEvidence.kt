@@ -1,7 +1,6 @@
 package org.verumomnis.forensic.core
 
 import java.io.Serializable
-import java.time.LocalDateTime
 
 /**
  * Forensic Evidence Data Model
