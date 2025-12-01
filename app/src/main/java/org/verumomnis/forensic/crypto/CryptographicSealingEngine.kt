@@ -1,7 +1,9 @@
 package org.verumomnis.forensic.crypto
 
+import android.os.Build
 import android.util.Base64
 import java.security.MessageDigest
+import java.security.SecureRandom
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -15,6 +17,10 @@ import javax.crypto.spec.SecretKeySpec
  * Tamper Detection: Mandatory
  * Admissibility Standard: Legal-grade
  * 
+ * Security Note: For enhanced security in production, consider integrating with
+ * Android Keystore for hardware-backed key storage. The current implementation
+ * uses a device-derived key combined with application context for sealing.
+ * 
  * @author Liam Highcock
  */
 class CryptographicSealingEngine {
@@ -22,8 +28,33 @@ class CryptographicSealingEngine {
     companion object {
         private const val HASH_ALGORITHM = "SHA-512"
         private const val HMAC_ALGORITHM = "HmacSHA512"
-        private const val FORENSIC_SALT = "VERUM_OMNIS_SAPS_2024"
+        
+        /**
+         * Derives a device-specific key component for sealing.
+         * This is combined with evidence data to create unique seals.
+         * Note: For production use with highly sensitive data, consider using
+         * Android Keystore for hardware-backed key protection.
+         */
+        private fun deriveDeviceKey(): String {
+            // Combine multiple device attributes for key derivation
+            // This provides reasonable protection while maintaining portability
+            val deviceInfo = buildString {
+                append(Build.MANUFACTURER)
+                append(Build.MODEL)
+                append(Build.FINGERPRINT.hashCode())
+                append("VERUM_OMNIS_SAPS")
+            }
+            // Hash the device info to create a consistent key
+            val digest = MessageDigest.getInstance(HASH_ALGORITHM)
+            return Base64.encodeToString(
+                digest.digest(deviceInfo.toByteArray(Charsets.UTF_8)),
+                Base64.NO_WRAP
+            )
+        }
     }
+
+    // Lazily initialize the device key
+    private val deviceKey: String by lazy { deriveDeviceKey() }
 
     /**
      * Calculates SHA-512 hash of the given data
@@ -48,11 +79,12 @@ class CryptographicSealingEngine {
     /**
      * Creates an HMAC-SHA512 seal for evidence integrity verification
      * @param data The data to seal
-     * @param key The secret key for sealing
+     * @param key Optional custom key. If not provided, uses device-derived key.
      * @return Base64-encoded seal
      */
-    fun createSeal(data: ByteArray, key: String = FORENSIC_SALT): String {
-        val secretKey = SecretKeySpec(key.toByteArray(Charsets.UTF_8), HMAC_ALGORITHM)
+    fun createSeal(data: ByteArray, key: String? = null): String {
+        val sealKey = key ?: deviceKey
+        val secretKey = SecretKeySpec(sealKey.toByteArray(Charsets.UTF_8), HMAC_ALGORITHM)
         val mac = Mac.getInstance(HMAC_ALGORITHM)
         mac.init(secretKey)
         val sealBytes = mac.doFinal(data)
@@ -63,10 +95,10 @@ class CryptographicSealingEngine {
      * Verifies an HMAC-SHA512 seal
      * @param data The original data
      * @param seal The seal to verify
-     * @param key The secret key used for sealing
+     * @param key Optional custom key. If not provided, uses device-derived key.
      * @return True if seal is valid
      */
-    fun verifySeal(data: ByteArray, seal: String, key: String = FORENSIC_SALT): Boolean {
+    fun verifySeal(data: ByteArray, seal: String, key: String? = null): Boolean {
         val expectedSeal = createSeal(data, key)
         return expectedSeal == seal
     }

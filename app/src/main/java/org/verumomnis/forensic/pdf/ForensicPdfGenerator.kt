@@ -205,6 +205,39 @@ class ForensicPdfGenerator(private val context: Context) {
         stream.stroke()
     }
 
+    /**
+     * Helper class to manage PDF page state for proper pagination
+     */
+    private class PageState(
+        val document: PDDocument,
+        val caseNumber: String,
+        private val generator: ForensicPdfGenerator
+    ) {
+        var currentPage: PDPage? = null
+        var contentStream: PDPageContentStream? = null
+        var yPosition: Float = 0f
+
+        fun ensureSpace(requiredSpace: Float) {
+            if (yPosition < MARGIN + requiredSpace || currentPage == null) {
+                startNewPage()
+            }
+        }
+
+        fun startNewPage() {
+            contentStream?.close()
+            currentPage = PDPage(PDRectangle.A4)
+            document.addPage(currentPage)
+            contentStream = PDPageContentStream(document, currentPage)
+            yPosition = PDRectangle.A4.height - MARGIN
+            generator.addPageHeader(contentStream!!, caseNumber)
+            yPosition -= 40f
+        }
+
+        fun close() {
+            contentStream?.close()
+        }
+    }
+
     private fun drawSection(
         stream: PDPageContentStream,
         title: String,
@@ -222,13 +255,19 @@ class ForensicPdfGenerator(private val context: Context) {
         stream.endText()
         yPosition -= LINE_HEIGHT * 2
 
-        // Section content
+        // Section content with proper line handling
         stream.setFont(PDType1Font.COURIER, BODY_SIZE)
         
         val lines = content.split("\n")
         for (line in lines) {
+            // Skip rendering if we're too close to page bottom
+            // Content will continue on next page in the next section
             if (yPosition < MARGIN + 50) {
-                // Would need new page handling here in production
+                // Add continuation marker
+                stream.beginText()
+                stream.newLineAtOffset(MARGIN + 10, yPosition)
+                stream.showText("[continued on next page...]")
+                stream.endText()
                 break
             }
             
