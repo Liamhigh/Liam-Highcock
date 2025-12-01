@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- V letter shape centered in the safe zone (72dp centered in 108dp) -->
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M36,38 L54,72 L72,38 L63,38 L54,56 L45,38 Z" />
+</vector>
