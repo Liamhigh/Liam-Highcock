@@ -3,6 +3,7 @@ package org.verumomnis.forensic.pdf
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import com.itextpdf.io.image.ImageDataFactory
@@ -35,7 +36,7 @@ import java.time.format.DateTimeFormatter
  * 
  * Features:
  * - PDF Standard: PDF 1.7
- * - VERUM OMNIS 3D LOGO CENTERED watermark
+ * - VERUM OMNIS text watermark centered on each page
  * - QR Code inclusion for verification
  * - Tamper detection via cryptographic seals
  * - Legal-grade admissibility format
@@ -43,6 +44,7 @@ import java.time.format.DateTimeFormatter
 class ForensicPdfGenerator(private val context: Context) {
 
     companion object {
+        private const val TAG = "ForensicPdfGenerator"
         private const val WATERMARK_TEXT = "VERUM OMNIS"
         private val WATERMARK_COLOR = DeviceRgb(200, 200, 200)
         private val HEADER_COLOR = DeviceRgb(30, 60, 114)
@@ -328,7 +330,14 @@ class ForensicPdfGenerator(private val context: Context) {
             
             document.add(qrImage)
         } catch (e: Exception) {
-            // QR generation failed, continue without it
+            // Log QR generation failure for debugging
+            Log.w(TAG, "QR code generation failed, report will not include verification QR", e)
+            document.add(
+                Paragraph("(QR verification code unavailable)")
+                    .setFontSize(8f)
+                    .setItalic()
+                    .setTextAlignment(TextAlignment.CENTER)
+            )
         }
     }
 

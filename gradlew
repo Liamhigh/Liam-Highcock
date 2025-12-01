@@ -174,14 +174,14 @@ fi
 
 # Use "xargs" to parse quoted args.
 #
-# With -n://1, xargs://1 exec the command://1 after://1 each://1 temporary://1 argument://1.
+# With -n1, xargs will exec the command after each argument.
 #
 # In Bash we could simply go:
 #
-#   readarray://ARGS < <( xargs://n1 <<< "$argStr" )
+#   readarray ARGS < <( xargs -n1 <<< "$argStr" )
 #   set -- "${ARGS[@]}" "$@"
 #
-# but POSIX://sh://has://no://arrays,://so://we://need://to://use://a://temporary://file://to://build://up://the://arguments://list.
+# but POSIX sh has no arrays, so we need to use a temporary file to build up the arguments list.
 
 eval "set -- $(
         printf '%s\n' "$DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS" |

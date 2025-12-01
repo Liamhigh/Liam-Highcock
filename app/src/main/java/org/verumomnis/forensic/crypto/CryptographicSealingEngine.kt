@@ -23,6 +23,8 @@ class CryptographicSealingEngine {
         private const val HASH_ALGORITHM = "SHA-512"
         private const val HMAC_ALGORITHM = "HmacSHA512"
         private const val KEY_SIZE = 64 // 512 bits
+        // Application-specific salt for key derivation security
+        private const val APPLICATION_SALT = "VerumOmnisForensicEngine2024"
     }
 
     private val secureRandom = SecureRandom()
@@ -66,12 +68,14 @@ class CryptographicSealingEngine {
     }
 
     /**
-     * Derives a key from the case ID using SHA-512
+     * Derives a key from the case ID using SHA-512 with application salt
      * This provides case-specific sealing without external key storage
      */
     private fun deriveKey(caseId: String): ByteArray {
         val digest = MessageDigest.getInstance(HASH_ALGORITHM)
-        return digest.digest(caseId.toByteArray(Charsets.UTF_8))
+        // Add application-specific salt for key derivation security
+        val saltedInput = APPLICATION_SALT + caseId + APPLICATION_SALT
+        return digest.digest(saltedInput.toByteArray(Charsets.UTF_8))
     }
 
     /**

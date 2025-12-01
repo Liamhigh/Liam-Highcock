@@ -83,11 +83,27 @@ class ReportViewerActivity : AppCompatActivity() {
             try {
                 val file = File(path)
                 if (file.exists()) {
-                    val uri = FileProvider.getUriForFile(
-                        this,
-                        "${packageName}.fileprovider",
-                        file
-                    )
+                    val uri = try {
+                        FileProvider.getUriForFile(
+                            this,
+                            "${packageName}.fileprovider",
+                            file
+                        )
+                    } catch (e: SecurityException) {
+                        Toast.makeText(
+                            this,
+                            "Cannot access report file: permission denied",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@let
+                    } catch (e: IllegalArgumentException) {
+                        Toast.makeText(
+                            this,
+                            "Report file is outside accessible paths",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@let
+                    }
                     
                     val intent = Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(uri, "application/pdf")
@@ -121,11 +137,27 @@ class ReportViewerActivity : AppCompatActivity() {
             try {
                 val file = File(path)
                 if (file.exists()) {
-                    val uri = FileProvider.getUriForFile(
-                        this,
-                        "${packageName}.fileprovider",
-                        file
-                    )
+                    val uri = try {
+                        FileProvider.getUriForFile(
+                            this,
+                            "${packageName}.fileprovider",
+                            file
+                        )
+                    } catch (e: SecurityException) {
+                        Toast.makeText(
+                            this,
+                            "Cannot share report file: permission denied",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@let
+                    } catch (e: IllegalArgumentException) {
+                        Toast.makeText(
+                            this,
+                            "Report file is outside accessible paths",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@let
+                    }
                     
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "application/pdf"
