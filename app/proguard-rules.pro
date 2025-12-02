@@ -19,3 +19,7 @@
 
 # Keep CameraX classes
 -keep class androidx.camera.** { *; }
+
+# Keep SLF4J API and suppress warnings
+-keep class org.slf4j.** { *; }
+-dontwarn org.slf4j.**
