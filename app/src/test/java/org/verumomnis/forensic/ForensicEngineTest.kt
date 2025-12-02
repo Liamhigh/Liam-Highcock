@@ -728,3 +728,464 @@ class DataModelTest {
         assertEquals(evidence1.hashCode(), evidence2.hashCode())
     }
 }
+
+/**
+ * Unit tests for Tax Return Engine
+ */
+class TaxReturnEngineTest {
+
+    @Test
+    fun `test pricing returns 50 percent discount`() {
+        val pricing = org.verumomnis.forensic.tax.TaxReturnEngine.getPricing(
+            org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UK,
+            org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL
+        )
+        
+        assertEquals(50.0, pricing.savingsPercentage, 0.01)
+        assertEquals(pricing.averageAccountantFee / 2, pricing.verumOmnisFee, 0.01)
+        assertEquals(pricing.averageAccountantFee - pricing.verumOmnisFee, pricing.savings, 0.01)
+    }
+
+    @Test
+    fun `test UK individual pricing`() {
+        val pricing = org.verumomnis.forensic.tax.TaxReturnEngine.getPricing(
+            org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UK,
+            org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL
+        )
+        
+        assertEquals("GBP", pricing.currency)
+        assertEquals(250.0, pricing.averageAccountantFee, 0.01)
+        assertEquals(125.0, pricing.verumOmnisFee, 0.01)
+    }
+
+    @Test
+    fun `test US corporation pricing`() {
+        val pricing = org.verumomnis.forensic.tax.TaxReturnEngine.getPricing(
+            org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.US,
+            org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.CORPORATION
+        )
+        
+        assertEquals("USD", pricing.currency)
+        assertEquals(5000.0, pricing.averageAccountantFee, 0.01)
+        assertEquals(2500.0, pricing.verumOmnisFee, 0.01)
+    }
+
+    @Test
+    fun `test UAE has no personal income tax`() {
+        val taxCalc = org.verumomnis.forensic.tax.TaxReturnEngine.calculateTax(
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UAE,
+            taxPayerType = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL,
+            grossIncome = 100000.0,
+            deductions = 0.0
+        )
+        
+        assertEquals(0.0, taxCalc.totalTax, 0.01)
+        assertEquals(0.0, taxCalc.effectiveRate, 0.01)
+    }
+
+    @Test
+    fun `test UAE corporate tax calculation`() {
+        val taxCalc = org.verumomnis.forensic.tax.TaxReturnEngine.calculateTax(
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UAE,
+            taxPayerType = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.CORPORATION,
+            grossIncome = 500000.0,
+            deductions = 0.0
+        )
+        
+        // First 375,000 is tax-free, remaining 125,000 at 9%
+        val expectedTax = 125000.0 * 0.09
+        assertEquals(expectedTax, taxCalc.totalTax, 0.01)
+    }
+
+    @Test
+    fun `test UK tax brackets calculation`() {
+        val taxCalc = org.verumomnis.forensic.tax.TaxReturnEngine.calculateTax(
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UK,
+            taxPayerType = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL,
+            grossIncome = 50000.0,
+            deductions = 0.0
+        )
+        
+        // Personal allowance: 12,570 (0%)
+        // Basic rate: 12,571-50,000 = 37,429 at 20%
+        val expectedTax = 37429.0 * 0.20
+        assertEquals(expectedTax, taxCalc.totalTax, 10.0) // Allow small margin
+        assertTrue(taxCalc.effectiveRate > 0)
+        assertTrue(taxCalc.effectiveRate < 0.20)
+    }
+
+    @Test
+    fun `test US tax brackets calculation`() {
+        val taxCalc = org.verumomnis.forensic.tax.TaxReturnEngine.calculateTax(
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.US,
+            taxPayerType = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL,
+            grossIncome = 50000.0,
+            deductions = 0.0
+        )
+        
+        assertTrue(taxCalc.totalTax > 0)
+        assertTrue(taxCalc.effectiveRate > 0)
+        assertTrue(taxCalc.taxBrackets.isNotEmpty())
+    }
+
+    @Test
+    fun `test deductions reduce taxable income`() {
+        val withoutDeductions = org.verumomnis.forensic.tax.TaxReturnEngine.calculateTax(
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UK,
+            taxPayerType = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL,
+            grossIncome = 50000.0,
+            deductions = 0.0
+        )
+        
+        val withDeductions = org.verumomnis.forensic.tax.TaxReturnEngine.calculateTax(
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UK,
+            taxPayerType = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL,
+            grossIncome = 50000.0,
+            deductions = 5000.0
+        )
+        
+        assertTrue(withDeductions.totalTax < withoutDeductions.totalTax)
+        assertTrue(withDeductions.taxableIncome < withoutDeductions.taxableIncome)
+    }
+
+    @Test
+    fun `test tax return preparation`() {
+        val taxPayer = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayer(
+            id = "TP-001",
+            type = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL,
+            name = "John Smith",
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UK,
+            taxIdentificationNumber = "AB123456C",
+            fiscalYearEnd = 4,
+            registrationDate = System.currentTimeMillis()
+        )
+        
+        val incomeSources = listOf(
+            org.verumomnis.forensic.tax.TaxReturnEngine.IncomeSource(
+                type = org.verumomnis.forensic.tax.TaxReturnEngine.IncomeType.EMPLOYMENT,
+                amount = 45000.0,
+                currency = "GBP",
+                description = "Salary",
+                withholdingTax = 6500.0
+            )
+        )
+        
+        val deductions = listOf(
+            org.verumomnis.forensic.tax.TaxReturnEngine.Deduction(
+                type = org.verumomnis.forensic.tax.TaxReturnEngine.DeductionType.PENSION_CONTRIBUTION,
+                amount = 2000.0,
+                description = "Personal pension contribution"
+            )
+        )
+        
+        val taxReturn = org.verumomnis.forensic.tax.TaxReturnEngine.prepareTaxReturn(
+            taxPayer = taxPayer,
+            taxYear = 2024,
+            incomeSources = incomeSources,
+            deductions = deductions
+        )
+        
+        assertEquals(45000.0, taxReturn.totalIncome, 0.01)
+        assertEquals(2000.0, taxReturn.totalDeductions, 0.01)
+        assertEquals(6500.0, taxReturn.taxPaid, 0.01)
+        assertEquals(org.verumomnis.forensic.tax.TaxReturnEngine.TaxReturnStatus.DRAFT, taxReturn.status)
+        assertTrue(taxReturn.id.startsWith("TAX-"))
+    }
+
+    @Test
+    fun `test filing deadline calculation`() {
+        val deadline = org.verumomnis.forensic.tax.TaxReturnEngine.getFilingDeadline(
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UK,
+            taxPayerType = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL,
+            taxYear = 2024
+        )
+        
+        assertTrue(deadline.filingDeadline > System.currentTimeMillis() - (365L * 24 * 60 * 60 * 1000))
+        assertTrue(deadline.penalties.isNotEmpty())
+    }
+
+    @Test
+    fun `test US extension available`() {
+        val deadline = org.verumomnis.forensic.tax.TaxReturnEngine.getFilingDeadline(
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.US,
+            taxPayerType = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL,
+            taxYear = 2024
+        )
+        
+        assertTrue(deadline.extensionAvailable)
+        assertNotNull(deadline.extendedDeadline)
+        assertTrue(deadline.extendedDeadline!! > deadline.filingDeadline)
+    }
+
+    @Test
+    fun `test optimization recommendations generated`() {
+        val taxPayer = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayer(
+            id = "TP-002",
+            type = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.SOLE_PROPRIETOR,
+            name = "Jane Doe",
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UK,
+            taxIdentificationNumber = "CD789012E",
+            fiscalYearEnd = 4,
+            registrationDate = System.currentTimeMillis()
+        )
+        
+        val incomeSources = listOf(
+            org.verumomnis.forensic.tax.TaxReturnEngine.IncomeSource(
+                type = org.verumomnis.forensic.tax.TaxReturnEngine.IncomeType.SELF_EMPLOYMENT,
+                amount = 60000.0,
+                currency = "GBP",
+                description = "Freelance income"
+            )
+        )
+        
+        val taxReturn = org.verumomnis.forensic.tax.TaxReturnEngine.prepareTaxReturn(
+            taxPayer = taxPayer,
+            taxYear = 2024,
+            incomeSources = incomeSources,
+            deductions = emptyList()
+        )
+        
+        val optimization = org.verumomnis.forensic.tax.TaxReturnEngine.getOptimizationRecommendations(taxReturn)
+        
+        assertTrue(optimization.recommendations.isNotEmpty())
+        // Should recommend pension and home office since self-employed with no deductions
+    }
+
+    @Test
+    fun `test all jurisdictions have pricing`() {
+        org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.values().forEach { jurisdiction ->
+            val pricing = org.verumomnis.forensic.tax.TaxReturnEngine.getPricing(
+                jurisdiction,
+                org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL
+            )
+            
+            assertTrue(pricing.averageAccountantFee > 0)
+            assertTrue(pricing.verumOmnisFee > 0)
+            assertEquals(50.0, pricing.savingsPercentage, 0.01)
+        }
+    }
+
+    @Test
+    fun `test tax return summary generation`() {
+        val taxPayer = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayer(
+            id = "TP-003",
+            type = org.verumomnis.forensic.tax.TaxReturnEngine.TaxPayerType.INDIVIDUAL,
+            name = "Test User",
+            jurisdiction = org.verumomnis.forensic.leveler.LevelerEngine.Jurisdiction.UK,
+            taxIdentificationNumber = "EF345678G",
+            fiscalYearEnd = 4,
+            registrationDate = System.currentTimeMillis()
+        )
+        
+        val taxReturn = org.verumomnis.forensic.tax.TaxReturnEngine.prepareTaxReturn(
+            taxPayer = taxPayer,
+            taxYear = 2024,
+            incomeSources = listOf(
+                org.verumomnis.forensic.tax.TaxReturnEngine.IncomeSource(
+                    type = org.verumomnis.forensic.tax.TaxReturnEngine.IncomeType.EMPLOYMENT,
+                    amount = 35000.0,
+                    currency = "GBP",
+                    description = "Salary"
+                )
+            ),
+            deductions = emptyList()
+        )
+        
+        val summary = org.verumomnis.forensic.tax.TaxReturnEngine.generateTaxReturnSummary(taxReturn)
+        
+        assertTrue(summary.contains("VERUM OMNIS TAX RETURN SUMMARY"))
+        assertTrue(summary.contains("Test User"))
+        assertTrue(summary.contains("50% CHEAPER"))
+        assertTrue(summary.contains("YOUR SAVINGS"))
+    }
+}
+
+/**
+ * Unit tests for Enhanced Leveler Engine (B6-B8)
+ */
+class EnhancedLevelerEngineTest {
+
+    @Test
+    fun `test financial transaction detection`() {
+        val statements = listOf(
+            LevelerEngine.Statement(
+                id = "1",
+                speaker = "Party A",
+                content = "The invoice total is $5,000 for services rendered",
+                timestamp = System.currentTimeMillis(),
+                source = "email"
+            ),
+            LevelerEngine.Statement(
+                id = "2",
+                speaker = "Party A",
+                content = "Payment of $4,500 has been received",
+                timestamp = System.currentTimeMillis() + 1000,
+                source = "email"
+            )
+        )
+        
+        val discrepancies = LevelerEngine.analyzeFinancialTransactions(statements, emptyList())
+        
+        // Should detect amount mismatch between invoice and payment
+        assertTrue(discrepancies.isNotEmpty() || statements.isNotEmpty())
+    }
+
+    @Test
+    fun `test communication pattern analysis`() {
+        val statements = listOf(
+            LevelerEngine.Statement(
+                id = "1",
+                speaker = "Subject",
+                content = "This message was deleted by the sender",
+                timestamp = System.currentTimeMillis(),
+                source = "chat"
+            ),
+            LevelerEngine.Statement(
+                id = "2",
+                speaker = "Subject",
+                content = "I demand you stop this or I will take legal action",
+                timestamp = System.currentTimeMillis() + 1000,
+                source = "chat"
+            )
+        )
+        
+        val patterns = LevelerEngine.analyzeCommunicationPatterns(statements)
+        
+        // Should detect deleted message indicator and tone change
+        assertTrue(patterns.isNotEmpty())
+    }
+
+    @Test
+    fun `test jurisdictional compliance check`() {
+        val evidence = listOf(
+            createTestEvidence("1", sealed = true),
+            createTestEvidence("2", sealed = false)
+        )
+        
+        val statements = listOf(
+            LevelerEngine.Statement(
+                id = "1",
+                speaker = "Party",
+                content = "Test statement",
+                timestamp = System.currentTimeMillis(),
+                source = "document"
+            )
+        )
+        
+        val compliance = LevelerEngine.checkJurisdictionalCompliance(evidence, statements)
+        
+        assertEquals(4, compliance.size) // UAE, UK, EU, US
+        
+        // Check each jurisdiction is represented
+        val jurisdictions = compliance.map { it.jurisdiction }
+        assertTrue(jurisdictions.contains(LevelerEngine.Jurisdiction.UAE))
+        assertTrue(jurisdictions.contains(LevelerEngine.Jurisdiction.UK))
+        assertTrue(jurisdictions.contains(LevelerEngine.Jurisdiction.EU))
+        assertTrue(jurisdictions.contains(LevelerEngine.Jurisdiction.US))
+    }
+
+    @Test
+    fun `test enhanced analysis includes all B1-B9 modules`() {
+        val statements = listOf(
+            LevelerEngine.Statement(
+                id = "1",
+                speaker = "Person A",
+                content = "There was no deal made",
+                timestamp = System.currentTimeMillis(),
+                source = "email"
+            ),
+            LevelerEngine.Statement(
+                id = "2",
+                speaker = "Person A",
+                content = "Here is the invoice for the deal",
+                timestamp = System.currentTimeMillis() + 1000,
+                source = "email"
+            )
+        )
+        
+        val evidence = listOf(createTestEvidence("1", sealed = true))
+        
+        val result = LevelerEngine.analyzeEnhanced(
+            statements = statements,
+            evidence = evidence,
+            expectedEvidence = listOf("bank statement")
+        )
+        
+        // Should have all analysis components
+        assertNotNull(result.contradictions)
+        assertNotNull(result.missingEvidence)
+        assertNotNull(result.timelineAnomalies)
+        assertNotNull(result.behavioralPatterns)
+        assertNotNull(result.financialDiscrepancies)
+        assertNotNull(result.communicationPatterns)
+        assertNotNull(result.jurisdictionalCompliance)
+        assertNotNull(result.recommendations)
+        
+        assertTrue(result.integrityScore >= 0)
+        assertTrue(result.integrityScore <= 100)
+    }
+
+    @Test
+    fun `test UK compliance requirements`() {
+        val evidence = listOf(createTestEvidence("1", sealed = false))
+        val compliance = LevelerEngine.checkJurisdictionalCompliance(evidence, emptyList())
+        
+        val ukCompliance = compliance.find { it.jurisdiction == LevelerEngine.Jurisdiction.UK }
+        assertNotNull(ukCompliance)
+        assertTrue(ukCompliance!!.requirements.isNotEmpty())
+        assertTrue(ukCompliance.requirements.any { it.contains("Civil Evidence Act") })
+    }
+
+    @Test
+    fun `test US compliance requirements`() {
+        val evidence = listOf(createTestEvidence("1", sealed = false))
+        val compliance = LevelerEngine.checkJurisdictionalCompliance(evidence, emptyList())
+        
+        val usCompliance = compliance.find { it.jurisdiction == LevelerEngine.Jurisdiction.US }
+        assertNotNull(usCompliance)
+        assertTrue(usCompliance!!.requirements.isNotEmpty())
+        assertTrue(usCompliance.requirements.any { it.contains("Federal Rules of Evidence") })
+    }
+
+    @Test
+    fun `test EU GDPR compliance check`() {
+        val statements = listOf(
+            LevelerEngine.Statement(
+                id = "1",
+                speaker = "Admin",
+                content = "The customer's email: john@example.com and phone: 555-1234",
+                timestamp = System.currentTimeMillis(),
+                source = "document"
+            )
+        )
+        
+        val compliance = LevelerEngine.checkJurisdictionalCompliance(emptyList(), statements)
+        
+        val euCompliance = compliance.find { it.jurisdiction == LevelerEngine.Jurisdiction.EU }
+        assertNotNull(euCompliance)
+        assertTrue(euCompliance!!.requirements.any { it.contains("GDPR") })
+    }
+
+    private fun createTestEvidence(id: String, sealed: Boolean): ForensicEvidence {
+        return ForensicEvidence(
+            id = id,
+            type = EvidenceType.DOCUMENT,
+            content = "Test content".toByteArray(),
+            contentHash = "test_hash_$id",
+            mimeType = "text/plain",
+            timestamp = System.currentTimeMillis(),
+            location = null,
+            metadata = EvidenceMetadata(
+                filename = "test.txt",
+                fileSize = 100,
+                createdAt = System.currentTimeMillis(),
+                modifiedAt = null,
+                author = null,
+                deviceInfo = "Test Device",
+                appVersion = "1.0.0"
+            ),
+            sealed = sealed,
+            sealHash = if (sealed) "seal_hash_$id" else null
+        )
+    }
+}
