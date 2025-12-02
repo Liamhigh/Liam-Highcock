@@ -54,6 +54,15 @@ class CaseDetailActivity : AppCompatActivity() {
         }
     }
 
+    // File intake launcher
+    private val fileIntakeLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            refreshCaseDetails()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityCaseDetailBinding.inflate(layoutInflater)
@@ -89,6 +98,10 @@ class CaseDetailActivity : AppCompatActivity() {
             showAddNoteDialog()
         }
 
+        binding.btnImportFile.setOnClickListener {
+            openFileIntake()
+        }
+
         binding.btnGenerateReport.setOnClickListener {
             generateReport()
         }
@@ -107,6 +120,13 @@ class CaseDetailActivity : AppCompatActivity() {
         }
         binding.rvEvidence.layoutManager = LinearLayoutManager(this)
         binding.rvEvidence.adapter = evidenceAdapter
+    }
+
+    private fun openFileIntake() {
+        val intent = Intent(this, FileIntakeActivity::class.java).apply {
+            putExtra(FileIntakeActivity.EXTRA_CASE_ID, caseId)
+        }
+        fileIntakeLauncher.launch(intent)
     }
 
     private fun refreshCaseDetails() {
@@ -148,6 +168,7 @@ class CaseDetailActivity : AppCompatActivity() {
         binding.btnAddDocument.isEnabled = isOpen
         binding.btnAddPhoto.isEnabled = isOpen
         binding.btnAddNote.isEnabled = isOpen
+        binding.btnImportFile.isEnabled = isOpen
         binding.btnSealCase.isEnabled = isOpen && forensicCase.evidence.isNotEmpty()
         binding.btnGenerateReport.isEnabled = forensicCase.evidence.isNotEmpty()
     }
@@ -181,22 +202,37 @@ class CaseDetailActivity : AppCompatActivity() {
     }
 
     private fun addTextNote(text: String) {
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        binding.progressBar.visibility = View.VISIBLE
         
-        val evidence = forensicEngine.addEvidence(
-            caseId = caseId!!,
-            type = EvidenceType.TEXT,
-            content = text.toByteArray(Charsets.UTF_8),
-            mimeType = "text/plain",
-            filename = "NOTE_$timestamp.txt"
-        )
+        lifecycleScope.launch {
+            try {
+                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                
+                val evidence = withContext(Dispatchers.IO) {
+                    forensicEngine.addEvidence(
+                        caseId = caseId!!,
+                        type = EvidenceType.TEXT,
+                        content = text.toByteArray(Charsets.UTF_8),
+                        mimeType = "text/plain",
+                        filename = "NOTE_$timestamp.txt"
+                    )
+                }
 
-        if (evidence != null) {
-            forensicEngine.sealEvidence(caseId!!, evidence.id)
-            Toast.makeText(this, "Note added: ${evidence.id}", Toast.LENGTH_SHORT).show()
-            refreshCaseDetails()
-        } else {
-            Toast.makeText(this, "Failed to add note", Toast.LENGTH_SHORT).show()
+                if (evidence != null) {
+                    withContext(Dispatchers.IO) {
+                        forensicEngine.sealEvidence(caseId!!, evidence.id)
+                    }
+                    binding.progressBar.visibility = View.GONE
+                    Toast.makeText(this@CaseDetailActivity, "Note added: ${evidence.id}", Toast.LENGTH_SHORT).show()
+                    refreshCaseDetails()
+                } else {
+                    binding.progressBar.visibility = View.GONE
+                    Toast.makeText(this@CaseDetailActivity, "Failed to add note", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(this@CaseDetailActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -211,10 +247,26 @@ class CaseDetailActivity : AppCompatActivity() {
                 "This action cannot be undone."
             )
             .setPositiveButton("Seal Case") { _, _ ->
-                val sealedCase = forensicEngine.sealCase(caseId!!)
-                if (sealedCase != null) {
-                    Toast.makeText(this, "Case sealed successfully", Toast.LENGTH_SHORT).show()
-                    refreshCaseDetails()
+                binding.progressBar.visibility = View.VISIBLE
+                
+                lifecycleScope.launch {
+                    try {
+                        val sealedCase = withContext(Dispatchers.IO) {
+                            forensicEngine.sealCase(caseId!!)
+                        }
+                        
+                        binding.progressBar.visibility = View.GONE
+                        
+                        if (sealedCase != null) {
+                            Toast.makeText(this@CaseDetailActivity, "Case sealed successfully", Toast.LENGTH_SHORT).show()
+                            refreshCaseDetails()
+                        } else {
+                            Toast.makeText(this@CaseDetailActivity, "Failed to seal case", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(this@CaseDetailActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
             .setNegativeButton("Cancel", null)

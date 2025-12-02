@@ -139,17 +139,34 @@ You can also manually trigger a build to generate APKs:
 
 ## 📱 Usage
 
-1. **Create a Case** - Start by creating a new forensic case with a descriptive name
-2. **Add Evidence** - Use the scanner to capture documents, photos, or text notes
-3. **Seal Evidence** - Each piece of evidence is cryptographically sealed with SHA-512
-4. **Generate Report** - Create a forensic PDF report with full evidence chain
-5. **View/Share Reports** - Access and share sealed forensic reports
+### Police Evidence Workflow
+
+The app follows a structured workflow for forensic evidence collection:
+
+```
+1. CREATE CASE → 2. ADD EVIDENCE → 3. ANALYZE → 4. SEAL → 5. REPORT → 6. SAVE/SHARE → 7. VIEW
+```
+
+#### Step-by-Step Guide
+
+1. **Create a Case** - Tap "+ New Case" and enter case name and description
+2. **Add Evidence** - Choose one of the intake methods:
+   - 📄 **Scan Document** - Use camera to capture document
+   - 📷 **Take Photo** - Capture photo evidence
+   - 📝 **Add Note** - Add text observations
+   - 📂 **Import File** - Pick existing files from device (PDF, images, documents)
+3. **Run Analysis** - Tap "Analyze" to run B1-B9 Leveler Engine analysis
+4. **Seal Case** - Tap "Seal Case" to lock evidence and generate integrity hash
+5. **Generate Report** - Tap "Report" to create the forensic PDF
+6. **Save/Share** - Use "Save" or "Share" buttons to export the sealed report
+7. **Verify** - Tap "Verify" to check case integrity hashes
 
 ### Evidence Types
 
-- 📄 Documents (scanned)
-- 📷 Photos (captured)
+- 📄 Documents (scanned or imported)
+- 📷 Photos (captured or imported)
 - 📝 Text (notes and observations)
+- 📂 Files (PDF, Word, images from device)
 - 🎤 Audio (coming soon)
 - 🎬 Video (coming soon)
 
@@ -183,6 +200,8 @@ app/src/main/java/org/verumomnis/forensic/
 │   └── LevelerEngine.kt
 ├── location/                # GPS location services
 │   └── ForensicLocationService.kt
+├── metadata/                # EXIF/metadata extraction
+│   └── EvidenceMetadataExtractor.kt
 ├── pdf/                     # PDF report generation
 │   └── ForensicPdfGenerator.kt
 ├── report/                  # Narrative generation
@@ -191,6 +210,7 @@ app/src/main/java/org/verumomnis/forensic/
     ├── MainActivity.kt
     ├── ScannerActivity.kt
     ├── CaseDetailActivity.kt
+    ├── FileIntakeActivity.kt
     └── ReportViewerActivity.kt
 ```
 
@@ -212,6 +232,55 @@ Each forensic report includes:
 3. **Evidence Hashes** - Individual SHA-512 for each evidence item
 4. **Case Integrity Hash** - Combined hash of all evidence
 5. **Seal Hashes** - HMAC-SHA512 tamper-proof seals
+
+## 🧪 End-to-End Testing
+
+### Testing the App Flow
+
+1. **Install the APK** on your Android device
+2. **Launch the app** - Verify "Constitutional Governance: ACTIVE" is displayed
+3. **Create a Test Case**:
+   - Tap "+ New Case"
+   - Enter name: "Test Evidence Case"
+   - Enter description: "Testing forensic workflow"
+   - Tap "Create"
+4. **Add Evidence** (test all methods):
+   - Tap case to open details
+   - Tap "📄 Scan" → capture a document → verify "Evidence captured and sealed" message
+   - Tap "📷 Photo" → capture a photo → verify sealing
+   - Tap "📝 Note" → enter text → verify sealing
+   - Tap "📂 Import File" → pick a file → verify sealing
+5. **Run Analysis**:
+   - Tap "Analyze" button
+   - Verify B1-B9 analysis results dialog appears
+   - Check Integrity Score is shown
+6. **Seal Case**:
+   - Tap "Seal Case" → confirm
+   - Verify status changes to "SEALED"
+   - Verify add evidence buttons are disabled
+7. **Generate Report**:
+   - Tap "Report"
+   - Verify progress indicator appears
+   - Verify Report Viewer opens with all data
+8. **Save Report**:
+   - Tap "Save"
+   - Verify file saved message with path
+9. **Share Report**:
+   - Tap "Share"
+   - Verify share sheet appears with PDF attachment
+10. **Verify Integrity**:
+    - Tap "Verify"
+    - Verify "INTEGRITY VERIFIED" message appears
+
+### Verifying Hashes
+
+To independently verify evidence integrity:
+
+1. **Export the report PDF** from the app
+2. **Note the Content Hash** for each evidence item in the report
+3. **Recalculate SHA-512** of original evidence content
+4. **Compare hashes** - they must match exactly
+5. **Verify Case Integrity Hash** matches the combined evidence chain
 
 ## 📜 License
 
