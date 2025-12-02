@@ -138,11 +138,14 @@ jobs:
 
     - name: Check for Keystore Secret
       id: check_keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       run: |
-        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+        if [ -n "$KEYSTORE_BASE64" ]; then
           echo "has_keystore=true" >> $GITHUB_OUTPUT
         else
           echo "has_keystore=false" >> $GITHUB_OUTPUT
+          echo "::notice::No production keystore configured. Skipping production release build."
         fi
 
     - name: Decode Keystore
