@@ -48,17 +48,23 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Apply signing config only if fully configured
+            // Apply signing config - use release if fully configured, otherwise fall back to debug
             val releaseSigningConfig = signingConfigs.getByName("release")
             if (releaseSigningConfig.storeFile != null && 
                 releaseSigningConfig.storePassword != null &&
                 releaseSigningConfig.keyAlias != null &&
                 releaseSigningConfig.keyPassword != null) {
                 signingConfig = releaseSigningConfig
+            } else {
+                // Fall back to debug signing to ensure APK is always signed
+                signingConfig = signingConfigs.getByName("debug")
+                logger.warn("Release signing not configured - using debug signing config")
             }
         }
         debug {
             isMinifyEnabled = false
+            // Explicitly use debug signing config to ensure APK is always signed
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
