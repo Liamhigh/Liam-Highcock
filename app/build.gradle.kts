@@ -1,6 +1,15 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+}
+
+// Load keystore properties created by CI at runtime (keystore.properties is created by the workflow)
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
 }
 
 android {
@@ -19,24 +28,39 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("KEYSTORE_PATH")
-            val keystorePass = System.getenv("KEYSTORE_PASSWORD")
-            val keyAliasValue = System.getenv("KEY_ALIAS")
-            val keyPass = System.getenv("KEY_PASSWORD")
-            
-            // Only configure signing if all required environment variables are present
-            if (keystorePath != null && keystorePass != null && keyAliasValue != null && keyPass != null) {
-                val keystoreFile = file(keystorePath)
+            // Prefer keystore.properties file (created by CI) over environment variables
+            if (keystorePropertiesFile.exists()) {
+                val storeFilePath = keystoreProperties.getProperty("storeFile") ?: "keystore.jks"
+                val keystoreFile = rootProject.file(storeFilePath)
                 if (keystoreFile.exists()) {
                     storeFile = keystoreFile
-                    storePassword = keystorePass
-                    keyAlias = keyAliasValue
-                    keyPassword = keyPass
+                    storePassword = keystoreProperties.getProperty("storePassword")
+                    keyAlias = keystoreProperties.getProperty("keyAlias")
+                    keyPassword = keystoreProperties.getProperty("keyPassword")
                 } else {
-                    logger.warn("Keystore file not found at: $keystorePath - release APK will be unsigned")
+                    logger.warn("Keystore file not found at: $storeFilePath - release APK will be unsigned")
                 }
             } else {
-                logger.warn("Signing environment variables not set - release APK will be unsigned")
+                // Fall back to environment variables for backward compatibility
+                val keystorePath = System.getenv("KEYSTORE_PATH")
+                val keystorePass = System.getenv("KEYSTORE_PASSWORD")
+                val keyAliasValue = System.getenv("KEY_ALIAS")
+                val keyPass = System.getenv("KEY_PASSWORD")
+                
+                // Only configure signing if all required environment variables are present
+                if (keystorePath != null && keystorePass != null && keyAliasValue != null && keyPass != null) {
+                    val keystoreFile = file(keystorePath)
+                    if (keystoreFile.exists()) {
+                        storeFile = keystoreFile
+                        storePassword = keystorePass
+                        keyAlias = keyAliasValue
+                        keyPassword = keyPass
+                    } else {
+                        logger.warn("Keystore file not found at: $keystorePath - release APK will be unsigned")
+                    }
+                } else {
+                    logger.warn("Signing environment variables not set - release APK will be unsigned")
+                }
             }
         }
     }
@@ -129,6 +153,9 @@ dependencies {
 
     // QR Code generation
     implementation("com.google.zxing:core:3.5.2")
+
+    // SLF4J binding for Android (fixes R8 missing StaticLoggerBinder)
+    implementation("org.slf4j:slf4j-android:1.7.36")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
