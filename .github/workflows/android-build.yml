@@ -5,6 +5,17 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type to generate'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - debug
+          - release
+          - both
 
 # Minimal permissions for security
 permissions:
@@ -31,7 +42,7 @@ jobs:
       run: chmod +x gradlew
 
     - name: Cache Gradle dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.gradle/caches
@@ -41,17 +52,49 @@ jobs:
           ${{ runner.os }}-gradle-
 
     - name: Build Debug APK
+      if: github.event_name != 'workflow_dispatch' || inputs.build_type == 'debug' || inputs.build_type == 'both'
       run: ./gradlew assembleDebug --stacktrace
 
     - name: Run Unit Tests
       run: ./gradlew testDebugUnitTest --stacktrace
       continue-on-error: true
 
+    - name: Generate Debug Keystore for Release Signing
+      if: github.event_name != 'workflow_dispatch' || inputs.build_type == 'release' || inputs.build_type == 'both'
+      run: |
+        keytool -genkeypair -v \
+          -keystore ${{ github.workspace }}/debug-release.keystore \
+          -storepass android \
+          -alias androiddebugkey \
+          -keypass android \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, S=Debug, C=US"
+
+    - name: Build Signed Release APK (debug-signed for testing)
+      if: github.event_name != 'workflow_dispatch' || inputs.build_type == 'release' || inputs.build_type == 'both'
+      env:
+        KEYSTORE_PATH: ${{ github.workspace }}/debug-release.keystore
+        KEYSTORE_PASSWORD: android
+        KEY_ALIAS: androiddebugkey
+        KEY_PASSWORD: android
+      run: ./gradlew assembleRelease --stacktrace
+
     - name: Upload Debug APK
+      if: github.event_name != 'workflow_dispatch' || inputs.build_type == 'debug' || inputs.build_type == 'both'
       uses: actions/upload-artifact@v4
       with:
         name: verum-omnis-forensic-debug
         path: app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
+
+    - name: Upload Release APK (debug-signed for testing)
+      if: github.event_name != 'workflow_dispatch' || inputs.build_type == 'release' || inputs.build_type == 'both'
+      uses: actions/upload-artifact@v4
+      with:
+        name: verum-omnis-forensic-release-debug-signed
+        path: app/build/outputs/apk/release/app-release.apk
         retention-days: 30
 
     - name: Upload Test Results
@@ -61,6 +104,10 @@ jobs:
         name: test-results
         path: app/build/reports/tests/
         retention-days: 7
+
+    - name: Clean up temporary keystore
+      if: always()
+      run: rm -f ${{ github.workspace }}/debug-release.keystore
 
   release:
     needs: build
@@ -83,13 +130,24 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Check for Keystore Secret
+      id: check_keystore
+      run: |
+        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "has_keystore=true" >> $GITHUB_OUTPUT
+        else
+          echo "has_keystore=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Decode Keystore
+      if: steps.check_keystore.outputs.has_keystore == 'true'
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       run: |
         echo "$KEYSTORE_BASE64" | base64 -d > ${{ github.workspace }}/release.keystore
 
-    - name: Build Signed Release APK
+    - name: Build Production-Signed Release APK
+      if: steps.check_keystore.outputs.has_keystore == 'true'
       env:
         KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -97,10 +155,11 @@ jobs:
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: ./gradlew assembleRelease --stacktrace
 
-    - name: Upload Signed Release APK
+    - name: Upload Production-Signed Release APK
+      if: steps.check_keystore.outputs.has_keystore == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: verum-omnis-forensic-release
+        name: verum-omnis-forensic-release-production
         path: app/build/outputs/apk/release/app-release.apk
         retention-days: 90
 
