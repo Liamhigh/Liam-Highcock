@@ -83,6 +83,25 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Validate Signing Secrets
+      run: |
+        if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "::error::KEYSTORE_BASE64 secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.KEYSTORE_PASSWORD }}" ]; then
+          echo "::error::KEYSTORE_PASSWORD secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.KEY_ALIAS }}" ]; then
+          echo "::error::KEY_ALIAS secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.KEY_PASSWORD }}" ]; then
+          echo "::error::KEY_PASSWORD secret is not set"
+          exit 1
+        fi
+
     - name: Decode Keystore
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
