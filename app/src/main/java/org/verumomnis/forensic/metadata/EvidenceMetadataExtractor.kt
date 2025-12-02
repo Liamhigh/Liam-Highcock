@@ -42,7 +42,19 @@ class EvidenceMetadataExtractor(private val context: Context) {
         val exposureTime: String?,
         val whiteBalance: String?,
         val exifVersion: String?
-    )
+    ) {
+        companion object {
+            /**
+             * Create an empty ImageMetadata instance when extraction fails
+             */
+            fun empty() = ImageMetadata(
+                width = null, height = null, orientation = null, dateTaken = null,
+                make = null, model = null, software = null, location = null,
+                flash = null, focalLength = null, aperture = null, iso = null,
+                exposureTime = null, whiteBalance = null, exifVersion = null
+            )
+        }
+    }
 
     /**
      * Extract metadata from an image file (runs on IO thread)
@@ -52,13 +64,7 @@ class EvidenceMetadataExtractor(private val context: Context) {
             val exif = ExifInterface(imageFile.absolutePath)
             extractFromExif(exif, imageFile)
         } catch (e: Exception) {
-            // Return empty metadata if extraction fails
-            ImageMetadata(
-                width = null, height = null, orientation = null, dateTaken = null,
-                make = null, model = null, software = null, location = null,
-                flash = null, focalLength = null, aperture = null, iso = null,
-                exposureTime = null, whiteBalance = null, exifVersion = null
-            )
+            ImageMetadata.empty()
         }
     }
 
@@ -77,13 +83,7 @@ class EvidenceMetadataExtractor(private val context: Context) {
                 tempFile.delete()
             }
         } catch (e: Exception) {
-            // Return empty metadata if extraction fails
-            ImageMetadata(
-                width = null, height = null, orientation = null, dateTaken = null,
-                make = null, model = null, software = null, location = null,
-                flash = null, focalLength = null, aperture = null, iso = null,
-                exposureTime = null, whiteBalance = null, exifVersion = null
-            )
+            ImageMetadata.empty()
         }
     }
 
@@ -95,19 +95,9 @@ class EvidenceMetadataExtractor(private val context: Context) {
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val bytes = inputStream.readBytes()
                 extractImageMetadata(bytes)
-            } ?: ImageMetadata(
-                width = null, height = null, orientation = null, dateTaken = null,
-                make = null, model = null, software = null, location = null,
-                flash = null, focalLength = null, aperture = null, iso = null,
-                exposureTime = null, whiteBalance = null, exifVersion = null
-            )
+            } ?: ImageMetadata.empty()
         } catch (e: Exception) {
-            ImageMetadata(
-                width = null, height = null, orientation = null, dateTaken = null,
-                make = null, model = null, software = null, location = null,
-                flash = null, focalLength = null, aperture = null, iso = null,
-                exposureTime = null, whiteBalance = null, exifVersion = null
-            )
+            ImageMetadata.empty()
         }
     }
 
