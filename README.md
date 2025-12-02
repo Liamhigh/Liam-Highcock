@@ -74,6 +74,24 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 
 The APK will be output to `app/build/outputs/apk/`
 
+### CI/CD Signed Release Builds
+
+The GitHub Actions workflow automatically builds and signs release APKs. To enable signed builds, configure the following repository secrets:
+
+| Secret | Description |
+|--------|-------------|
+| `KEYSTORE_BASE64` | Base64-encoded keystore file |
+| `KEYSTORE_PASSWORD` | Password for the keystore |
+| `KEY_ALIAS` | Alias of the signing key |
+| `KEY_PASSWORD` | Password for the signing key |
+
+To generate the base64-encoded keystore:
+```bash
+base64 -i your-keystore.jks -o keystore-base64.txt
+```
+
+Copy the contents of `keystore-base64.txt` to the `KEYSTORE_BASE64` secret.
+
 ## 📱 Usage
 
 1. **Create a Case** - Start by creating a new forensic case with a descriptive name
