@@ -66,7 +66,7 @@ jobs:
       if: github.event_name != 'workflow_dispatch' || inputs.build_type == 'release' || inputs.build_type == 'both'
       run: |
         keytool -genkeypair -v \
-          -keystore ${{ github.workspace }}/debug-release.keystore \
+          -keystore keystore.jks \
           -storepass android \
           -alias androiddebugkey \
           -keypass android \
@@ -75,13 +75,18 @@ jobs:
           -validity 10000 \
           -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, S=Debug, C=US"
 
+    - name: Create keystore.properties for Debug Release Build
+      if: github.event_name != 'workflow_dispatch' || inputs.build_type == 'release' || inputs.build_type == 'both'
+      run: |
+        cat > keystore.properties <<EOF
+        storeFile=keystore.jks
+        storePassword=android
+        keyAlias=androiddebugkey
+        keyPassword=android
+        EOF
+
     - name: Build Signed Release APK (debug-signed for testing)
       if: github.event_name != 'workflow_dispatch' || inputs.build_type == 'release' || inputs.build_type == 'both'
-      env:
-        KEYSTORE_PATH: ${{ github.workspace }}/debug-release.keystore
-        KEYSTORE_PASSWORD: android
-        KEY_ALIAS: androiddebugkey
-        KEY_PASSWORD: android
       run: ./gradlew assembleRelease --stacktrace
 
     - name: Upload Debug APK
@@ -110,7 +115,9 @@ jobs:
 
     - name: Clean up temporary keystore
       if: always()
-      run: rm -f ${{ github.workspace }}/debug-release.keystore
+      run: |
+        rm -f keystore.jks
+        rm -f keystore.properties
 
   release:
     needs: build
@@ -139,7 +146,7 @@ jobs:
     - name: Check for Keystore Secret
       id: check_keystore
       env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
       run: |
         if [ -n "$KEYSTORE_BASE64" ]; then
           echo "has_keystore=true" >> $GITHUB_OUTPUT
@@ -148,20 +155,36 @@ jobs:
           echo "::notice::No production keystore configured. Skipping production release build."
         fi
 
-    - name: Decode Keystore
+    - name: Decode signing keystore (if provided)
       if: steps.check_keystore.outputs.has_keystore == 'true'
       env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
       run: |
-        echo "$KEYSTORE_BASE64" | base64 -d > ${{ github.workspace }}/release.keystore
+        echo "Decoding keystore from secret"
+        # Prefer openssl if available, otherwise fallback to base64 -d
+        if command -v openssl >/dev/null 2>&1; then
+          echo "$KEYSTORE_BASE64" | openssl base64 -d -A > keystore.jks
+        else
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+        fi
+        ls -l keystore.jks || true
+
+    - name: Create keystore.properties
+      if: steps.check_keystore.outputs.has_keystore == 'true'
+      env:
+        STORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+      run: |
+        cat > keystore.properties <<EOF
+        storeFile=keystore.jks
+        storePassword=$STORE_PASSWORD
+        keyAlias=$KEY_ALIAS
+        keyPassword=$KEY_PASSWORD
+        EOF
 
     - name: Build Production-Signed Release APK
       if: steps.check_keystore.outputs.has_keystore == 'true'
-      env:
-        KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: ./gradlew assembleRelease --stacktrace
 
     - name: Upload Production-Signed Release APK
@@ -172,6 +195,8 @@ jobs:
         path: app/build/outputs/apk/release/app-release.apk
         retention-days: 90
 
-    - name: Clean up keystore
+    - name: Clean up keystore and properties
       if: always()
-      run: rm -f ${{ github.workspace }}/release.keystore
+      run: |
+        rm -f keystore.jks
+        rm -f keystore.properties

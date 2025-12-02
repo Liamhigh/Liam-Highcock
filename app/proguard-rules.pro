@@ -19,3 +19,7 @@
 
 # Keep CameraX classes
 -keep class androidx.camera.** { *; }
+
+# Keep SLF4J API classes and suppress warnings related to missing binder
+-keep class org.slf4j.** { *; }
+-dontwarn org.slf4j.**
