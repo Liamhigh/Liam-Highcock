@@ -221,6 +221,8 @@ Copyright © 2024 Verum Global Foundation
 
 **Liam Highcock**
 
+[![GitHub](https://img.shields.io/badge/GitHub-Liamhigh-181717?logo=github)](https://github.com/Liamhigh)
+
 ---
 
 *AI FORENSICS FOR TRUTH*
