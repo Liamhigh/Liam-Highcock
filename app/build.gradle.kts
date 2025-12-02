@@ -30,10 +30,16 @@ android {
         create("release") {
             // Prefer keystore.properties file (created by CI) over environment variables
             if (keystorePropertiesFile.exists()) {
-                storeFile = file(keystoreProperties.getProperty("storeFile") ?: "keystore.jks")
-                storePassword = keystoreProperties.getProperty("storePassword")
-                keyAlias = keystoreProperties.getProperty("keyAlias")
-                keyPassword = keystoreProperties.getProperty("keyPassword")
+                val storeFilePath = keystoreProperties.getProperty("storeFile") ?: "keystore.jks"
+                val keystoreFile = rootProject.file(storeFilePath)
+                if (keystoreFile.exists()) {
+                    storeFile = keystoreFile
+                    storePassword = keystoreProperties.getProperty("storePassword")
+                    keyAlias = keystoreProperties.getProperty("keyAlias")
+                    keyPassword = keystoreProperties.getProperty("keyPassword")
+                } else {
+                    logger.warn("Keystore file not found at: $storeFilePath - release APK will be unsigned")
+                }
             } else {
                 // Fall back to environment variables for backward compatibility
                 val keystorePath = System.getenv("KEYSTORE_PATH")
@@ -68,10 +74,10 @@ android {
             )
             // Apply signing config - use release if fully configured, otherwise fall back to debug
             val releaseSigningConfig = signingConfigs.getByName("release")
-            if (keystorePropertiesFile.exists() || (releaseSigningConfig.storeFile != null && 
+            if (releaseSigningConfig.storeFile != null && 
                 releaseSigningConfig.storePassword != null &&
                 releaseSigningConfig.keyAlias != null &&
-                releaseSigningConfig.keyPassword != null)) {
+                releaseSigningConfig.keyPassword != null) {
                 signingConfig = releaseSigningConfig
             } else {
                 // Fall back to debug signing to ensure APK is always signed

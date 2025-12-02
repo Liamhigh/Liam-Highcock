@@ -159,15 +159,7 @@ jobs:
       if: steps.check_keystore.outputs.has_keystore == 'true'
       env:
         KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
-      run: |
-        echo "Decoding keystore from secret"
-        # Prefer openssl if available, otherwise fallback to base64 -d
-        if command -v openssl >/dev/null 2>&1; then
-          echo "$KEYSTORE_BASE64" | openssl base64 -d -A > keystore.jks
-        else
-          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
-        fi
-        ls -l keystore.jks || true
+      run: echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
 
     - name: Create keystore.properties
       if: steps.check_keystore.outputs.has_keystore == 'true'
