@@ -19,3 +19,9 @@
 
 # Keep CameraX classes
 -keep class androidx.camera.** { *; }
+
+# Keep SLF4J API classes required by iText7 and avoid warnings
+-keep class org.slf4j.Logger { *; }
+-keep class org.slf4j.LoggerFactory { *; }
+-keep class org.slf4j.impl.StaticLoggerBinder { *; }
+-dontwarn org.slf4j.**
