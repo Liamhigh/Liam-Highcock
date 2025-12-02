@@ -130,6 +130,9 @@ dependencies {
     // QR Code generation
     implementation("com.google.zxing:core:3.5.2")
 
+    // SLF4J binding for Android (required by iText7, prevents R8 missing class errors)
+    implementation("org.slf4j:slf4j-android:1.7.36")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.3.1")
