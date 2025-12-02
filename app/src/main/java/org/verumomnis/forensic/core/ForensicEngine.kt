@@ -2,7 +2,14 @@ package org.verumomnis.forensic.core
 
 import android.content.Context
 import android.os.Build
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.verumomnis.forensic.crypto.CryptographicSealingEngine
+import org.verumomnis.forensic.database.ForensicRepository
 import org.verumomnis.forensic.pdf.ForensicPdfGenerator
 import org.verumomnis.forensic.report.ForensicNarrativeGenerator
 import java.io.File
@@ -13,7 +20,7 @@ import java.util.UUID
  * Verum Omnis Forensic Engine
  * 
  * Core engine for forensic evidence collection, sealing, and reporting.
- * Operates in offline-first, stateless mode with no cloud dependencies.
+ * Operates in offline-first mode with local persistence.
  * 
  * Features:
  * - Cryptographic Evidence Sealing (SHA-512 + HMAC-SHA512)
@@ -21,18 +28,47 @@ import java.util.UUID
  * - AI-Readable PDF Reports
  * - Tamper Detection
  * - Chain of Custody Verification
+ * - Local Database Persistence
  * 
  * @author Liam Highcock
- * @version 1.0.0
+ * @version 1.1.0
  */
 class ForensicEngine(private val context: Context) {
 
     private val cryptoEngine = CryptographicSealingEngine()
     private val pdfGenerator = ForensicPdfGenerator(context)
     private val narrativeGenerator = ForensicNarrativeGenerator()
+    private val repository = ForensicRepository(context)
+    private val scope = CoroutineScope(Dispatchers.IO)
     
-    // In-memory case storage (stateless - no persistence between sessions)
+    // In-memory cache for active cases
     private val activeCases = mutableMapOf<String, ForensicCase>()
+    
+    init {
+        // Load persisted cases on initialization
+        scope.launch {
+            try {
+                loadPersistedCases()
+            } catch (e: Exception) {
+                // Log error but don't crash - empty case list is acceptable fallback
+                android.util.Log.e("ForensicEngine", "Failed to load persisted cases", e)
+            }
+        }
+    }
+    
+    private suspend fun loadPersistedCases() {
+        val cases = repository.getAllCases()
+        cases.forEach { case ->
+            activeCases[case.id] = case
+        }
+    }
+    
+    /**
+     * Get all cases as a Flow for reactive UI updates
+     */
+    fun getAllCasesFlow(): Flow<List<ForensicCase>> {
+        return repository.getAllCasesFlow()
+    }
     
     /**
      * Create a new forensic case
@@ -52,6 +88,12 @@ class ForensicEngine(private val context: Context) {
         )
         
         activeCases[caseId] = newCase
+        
+        // Persist to database
+        scope.launch {
+            repository.saveCase(newCase)
+        }
+        
         return newCase
     }
     
@@ -97,6 +139,13 @@ class ForensicEngine(private val context: Context) {
         )
         
         forensicCase.evidence.add(evidence)
+        
+        // Persist evidence and update case
+        scope.launch {
+            repository.saveEvidence(caseId, evidence)
+            repository.updateCase(forensicCase.copy(modifiedAt = now))
+        }
+        
         return evidence
     }
     
@@ -123,6 +172,11 @@ class ForensicEngine(private val context: Context) {
         val index = forensicCase.evidence.indexOfFirst { it.id == evidenceId }
         if (index >= 0) {
             forensicCase.evidence[index] = sealedEvidence
+        }
+        
+        // Persist update
+        scope.launch {
+            repository.updateEvidence(caseId, sealedEvidence)
         }
         
         return sealedEvidence
@@ -160,6 +214,15 @@ class ForensicEngine(private val context: Context) {
         )
         
         activeCases[caseId] = sealedCase
+        
+        // Persist update
+        scope.launch {
+            repository.updateCase(sealedCase)
+            sealedCase.evidence.forEach { ev ->
+                repository.updateEvidence(caseId, ev)
+            }
+        }
+        
         return sealedCase
     }
     
@@ -232,12 +295,26 @@ class ForensicEngine(private val context: Context) {
         )
         
         // Update case status
-        activeCases[caseId] = sealedCase.copy(
+        val reportedCase = sealedCase.copy(
             status = CaseStatus.REPORTED,
             modifiedAt = reportTimestamp
         )
+        activeCases[caseId] = reportedCase
+        
+        // Persist update
+        scope.launch {
+            repository.updateCase(reportedCase)
+        }
         
         return report
+    }
+    
+    /**
+     * Export case to file
+     */
+    suspend fun exportCase(caseId: String): File? {
+        val exportDir = File(context.getExternalFilesDir(null), "exports").apply { mkdirs() }
+        return repository.exportCase(caseId, exportDir)
     }
     
     /**
@@ -287,6 +364,12 @@ class ForensicEngine(private val context: Context) {
         }
         
         activeCases.remove(caseId)
+        
+        // Delete from database
+        scope.launch {
+            repository.deleteCase(caseId)
+        }
+        
         return true
     }
     

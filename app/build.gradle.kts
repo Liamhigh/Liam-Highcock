@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp") version "1.9.21-1.0.15"
 }
 
 android {
@@ -107,6 +108,7 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
+    implementation("androidx.camera:camera-video:1.3.1")
 
     // PDF Processing (offline-capable) - using iText for Android
     implementation("com.itextpdf:itext7-core:7.2.5")
@@ -129,6 +131,11 @@ dependencies {
 
     // QR Code generation
     implementation("com.google.zxing:core:3.5.2")
+
+    // Room Database for evidence persistence
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

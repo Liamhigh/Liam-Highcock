@@ -141,14 +141,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="8dp">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddDocument"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📄 Document"
+                    android:text="📄 Doc"
+                    android:textSize="12sp"
                     app:backgroundTint="#1E88E5" />
 
                 <com.google.android.material.button.MaterialButton
@@ -156,8 +157,9 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginHorizontal="8dp"
+                    android:layout_marginHorizontal="4dp"
                     android:text="📷 Photo"
+                    android:textSize="12sp"
                     app:backgroundTint="#1E88E5" />
 
                 <com.google.android.material.button.MaterialButton
@@ -166,7 +168,43 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="📝 Note"
+                    android:textSize="12sp"
                     app:backgroundTint="#1E88E5" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAddAudio"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🎤 Audio"
+                    android:textSize="12sp"
+                    app:backgroundTint="#9C27B0" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAddVideo"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="4dp"
+                    android:text="🎥 Video"
+                    android:textSize="12sp"
+                    app:backgroundTint="#E91E63" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExportCase"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="📤 Export"
+                    android:textSize="12sp"
+                    app:backgroundTint="#607D8B" />
             </LinearLayout>
 
             <!-- Evidence List Section -->
