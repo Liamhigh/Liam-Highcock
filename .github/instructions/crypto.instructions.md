@@ -29,9 +29,9 @@ This directory contains security-critical cryptographic sealing code. Exercise e
 
 ## Security Checklist
 
-Before submitting changes:
-- [ ] Hash algorithm remains SHA-512
-- [ ] HMAC algorithm remains HMAC-SHA512
-- [ ] No secrets are logged or exposed
-- [ ] Existing sealed evidence can still be verified
-- [ ] Unit tests pass with expected outputs
+Before submitting changes, verify:
+- Hash algorithm remains SHA-512
+- HMAC algorithm remains HMAC-SHA512
+- No secrets are logged or exposed
+- Existing sealed evidence can still be verified
+- Unit tests pass with expected outputs

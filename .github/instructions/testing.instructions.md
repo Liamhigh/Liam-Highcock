@@ -11,7 +11,7 @@ Guidelines for writing tests in the Verum Omnis Forensic Engine.
 
 ## Test Framework
 
-- Use JUnit 4 for unit tests
+- Use JUnit 4 for unit tests (project uses JUnit 4.13.2)
 - Use AndroidX Test for instrumentation tests
 - Use Truth or standard assertions for verification
 

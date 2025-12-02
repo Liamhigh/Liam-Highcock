@@ -20,13 +20,13 @@ This directory contains code for generating forensic PDF reports and narrative c
 
 Every forensic report must include:
 
-- [ ] Case identifier and timestamp
-- [ ] Evidence list with individual SHA-512 hashes
-- [ ] Combined case integrity hash
-- [ ] HMAC-SHA512 seal hashes
-- [ ] QR code with verification data
-- [ ] APK signature hash for chain of trust
-- [ ] B1-B9 Leveler analysis results
+- Case identifier and timestamp
+- Evidence list with individual SHA-512 hashes
+- Combined case integrity hash
+- HMAC-SHA512 seal hashes
+- QR code with verification data
+- APK signature hash for chain of trust
+- B1-B9 Leveler analysis results
 
 ## QR Code Requirements
 
