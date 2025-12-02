@@ -24,11 +24,19 @@ android {
             val keyAliasValue = System.getenv("KEY_ALIAS")
             val keyPass = System.getenv("KEY_PASSWORD")
             
+            // Only configure signing if all required environment variables are present
             if (keystorePath != null && keystorePass != null && keyAliasValue != null && keyPass != null) {
-                storeFile = file(keystorePath)
-                storePassword = keystorePass
-                keyAlias = keyAliasValue
-                keyPassword = keyPass
+                val keystoreFile = file(keystorePath)
+                if (keystoreFile.exists()) {
+                    storeFile = keystoreFile
+                    storePassword = keystorePass
+                    keyAlias = keyAliasValue
+                    keyPassword = keyPass
+                } else {
+                    logger.warn("Keystore file not found at: $keystorePath - release APK will be unsigned")
+                }
+            } else {
+                logger.warn("Signing environment variables not set - release APK will be unsigned")
             }
         }
     }
@@ -40,8 +48,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            val releaseSigningConfig = signingConfigs.findByName("release")
-            if (releaseSigningConfig?.storeFile != null) {
+            // Apply signing config only if fully configured
+            val releaseSigningConfig = signingConfigs.getByName("release")
+            if (releaseSigningConfig.storeFile != null && 
+                releaseSigningConfig.storePassword != null &&
+                releaseSigningConfig.keyAlias != null &&
+                releaseSigningConfig.keyPassword != null) {
                 signingConfig = releaseSigningConfig
             }
         }
