@@ -4,6 +4,7 @@
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
@@ -12,6 +13,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <application
@@ -51,6 +53,18 @@
         <activity
             android:name=".ui.CaseDetailActivity"
             android:exported="false"
+            android:theme="@style/Theme.VerumOmnisForensic" />
+
+        <activity
+            android:name=".ui.AudioRecorderActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.VerumOmnisForensic" />
+
+        <activity
+            android:name=".ui.VideoRecorderActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.VerumOmnisForensic" />
 
         <!-- File Provider for sharing reports -->

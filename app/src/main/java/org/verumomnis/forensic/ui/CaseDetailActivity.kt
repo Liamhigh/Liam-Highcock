@@ -54,6 +54,24 @@ class CaseDetailActivity : AppCompatActivity() {
         }
     }
 
+    // Audio recorder launcher
+    private val audioRecorderLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            refreshCaseDetails()
+        }
+    }
+
+    // Video recorder launcher
+    private val videoRecorderLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            refreshCaseDetails()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityCaseDetailBinding.inflate(layoutInflater)
@@ -87,6 +105,18 @@ class CaseDetailActivity : AppCompatActivity() {
 
         binding.btnAddNote.setOnClickListener {
             showAddNoteDialog()
+        }
+
+        binding.btnAddAudio.setOnClickListener {
+            openAudioRecorder()
+        }
+
+        binding.btnAddVideo.setOnClickListener {
+            openVideoRecorder()
+        }
+
+        binding.btnExportCase.setOnClickListener {
+            exportCase()
         }
 
         binding.btnGenerateReport.setOnClickListener {
@@ -148,8 +178,11 @@ class CaseDetailActivity : AppCompatActivity() {
         binding.btnAddDocument.isEnabled = isOpen
         binding.btnAddPhoto.isEnabled = isOpen
         binding.btnAddNote.isEnabled = isOpen
+        binding.btnAddAudio.isEnabled = isOpen
+        binding.btnAddVideo.isEnabled = isOpen
         binding.btnSealCase.isEnabled = isOpen && forensicCase.evidence.isNotEmpty()
         binding.btnGenerateReport.isEnabled = forensicCase.evidence.isNotEmpty()
+        binding.btnExportCase.isEnabled = forensicCase.evidence.isNotEmpty()
     }
 
     private fun openScanner(type: EvidenceType) {
@@ -158,6 +191,53 @@ class CaseDetailActivity : AppCompatActivity() {
             putExtra(ScannerActivity.EXTRA_EVIDENCE_TYPE, type)
         }
         scannerLauncher.launch(intent)
+    }
+
+    private fun openAudioRecorder() {
+        val intent = Intent(this, AudioRecorderActivity::class.java).apply {
+            putExtra(AudioRecorderActivity.EXTRA_CASE_ID, caseId)
+        }
+        audioRecorderLauncher.launch(intent)
+    }
+
+    private fun openVideoRecorder() {
+        val intent = Intent(this, VideoRecorderActivity::class.java).apply {
+            putExtra(VideoRecorderActivity.EXTRA_CASE_ID, caseId)
+        }
+        videoRecorderLauncher.launch(intent)
+    }
+
+    private fun exportCase() {
+        binding.progressBar.visibility = View.VISIBLE
+        
+        lifecycleScope.launch {
+            try {
+                val exportFile = forensicEngine.exportCase(caseId!!)
+                
+                binding.progressBar.visibility = View.GONE
+                
+                if (exportFile != null) {
+                    Toast.makeText(
+                        this@CaseDetailActivity,
+                        "Case exported to: ${exportFile.absolutePath}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        this@CaseDetailActivity,
+                        "Failed to export case",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(
+                    this@CaseDetailActivity,
+                    "Export error: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     private fun showAddNoteDialog() {
