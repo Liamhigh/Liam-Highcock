@@ -74,6 +74,35 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 
 The APK will be output to `app/build/outputs/apk/`
 
+### Download Signed APKs from GitHub Actions
+
+You can download pre-built signed APKs directly from GitHub Actions:
+
+1. Go to the **Actions** tab in this repository
+2. Click on **Android CI/CD** workflow
+3. Select a successful workflow run
+4. Download the artifacts:
+   - **verum-omnis-forensic-debug** - Debug APK (automatically signed with debug keystore)
+   - **verum-omnis-forensic-release-debug-signed** - Release APK signed with debug keystore (for testing)
+   - **verum-omnis-forensic-release-production** - Production release APK (when production keystore secrets are configured)
+
+#### Manual Workflow Trigger
+
+You can also manually trigger a build to generate APKs:
+
+1. Go to **Actions** → **Android CI/CD**
+2. Click **Run workflow**
+3. Select the build type (debug, release, or both)
+4. Click **Run workflow**
+5. Once complete, download the APK artifacts
+
+#### Installing on Your Phone
+
+1. Download the APK file from the workflow artifacts
+2. On your Android phone, enable **Install from Unknown Sources** in Settings
+3. Transfer the APK to your phone (via USB, email, or cloud storage)
+4. Tap the APK file to install
+
 ## 📱 Usage
 
 1. **Create a Case** - Start by creating a new forensic case with a descriptive name
