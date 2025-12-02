@@ -86,6 +86,40 @@ You can download pre-built signed APKs directly from GitHub Actions:
    - **verum-omnis-forensic-release-debug-signed** - Release APK signed with debug keystore (for testing)
    - **verum-omnis-forensic-release-production** - Production release APK (when production keystore secrets are configured)
 
+#### Configuring Production APK Signing
+
+To enable production-signed release APKs, you need to configure the following GitHub repository secrets:
+
+1. **Generate a keystore** (if you don't have one):
+   ```bash
+   keytool -genkeypair -v \
+     -keystore my-release-key.keystore \
+     -storepass YOUR_STORE_PASSWORD \
+     -alias your-key-alias \
+     -keypass YOUR_KEY_PASSWORD \
+     -keyalg RSA \
+     -keysize 2048 \
+     -validity 10000 \
+     -dname "CN=Your Name, OU=Your Unit, O=Your Org, L=City, S=State, C=XX"
+   ```
+
+2. **Encode the keystore to Base64**:
+   ```bash
+   base64 -i my-release-key.keystore | pbcopy  # macOS
+   # or
+   base64 my-release-key.keystore > keystore_base64.txt  # Linux
+   ```
+
+3. **Add the following secrets** in GitHub (Settings → Secrets and variables → Actions → New repository secret):
+   | Secret Name | Description |
+   |-------------|-------------|
+   | `KEYSTORE_BASE64` | Base64-encoded keystore file content |
+   | `KEYSTORE_PASSWORD` | Password for the keystore |
+   | `KEY_ALIAS` | Alias of the key in the keystore |
+   | `KEY_PASSWORD` | Password for the key |
+
+Once configured, production-signed APKs will be automatically generated on pushes to the `main` branch.
+
 #### Manual Workflow Trigger
 
 You can also manually trigger a build to generate APKs:
