@@ -213,21 +213,37 @@ class ReportViewerActivity : AppCompatActivity() {
 
     private fun verifyIntegrity() {
         val report = currentReport ?: return
-
-        // Simple verification display
         val caseId = intent.getStringExtra(EXTRA_CASE_ID) ?: return
-        val isValid = forensicEngine.verifyCase(caseId)
 
-        val message = if (isValid) {
-            "✓ INTEGRITY VERIFIED\n\nCase integrity hash matches. Evidence chain is intact."
-        } else {
-            "⚠ INTEGRITY CHECK FAILED\n\nCase may have been tampered with or is not yet sealed."
+        binding.progressBar.visibility = android.view.View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val isValid = withContext(Dispatchers.IO) {
+                    forensicEngine.verifyCase(caseId)
+                }
+
+                binding.progressBar.visibility = android.view.View.GONE
+
+                val message = if (isValid) {
+                    "✓ INTEGRITY VERIFIED\n\nCase integrity hash matches. Evidence chain is intact."
+                } else {
+                    "⚠ INTEGRITY CHECK FAILED\n\nCase may have been tampered with or is not yet sealed."
+                }
+
+                androidx.appcompat.app.AlertDialog.Builder(this@ReportViewerActivity)
+                    .setTitle("Integrity Verification")
+                    .setMessage(message)
+                    .setPositiveButton("OK", null)
+                    .show()
+            } catch (e: Exception) {
+                binding.progressBar.visibility = android.view.View.GONE
+                Toast.makeText(
+                    this@ReportViewerActivity,
+                    "Verification error: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Integrity Verification")
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .show()
     }
 }

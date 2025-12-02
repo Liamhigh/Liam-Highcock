@@ -141,14 +141,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="8dp">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddDocument"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📄 Document"
+                    android:text="📄 Scan"
                     app:backgroundTint="#1E88E5" />
 
                 <com.google.android.material.button.MaterialButton
@@ -168,6 +168,15 @@
                     android:text="📝 Note"
                     app:backgroundTint="#1E88E5" />
             </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnImportFile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📂 Import File from Device"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:textColor="#FFFFFF"
+                android:layout_marginBottom="16dp" />
 
             <!-- Evidence List Section -->
             <LinearLayout

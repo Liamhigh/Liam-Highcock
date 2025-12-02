@@ -53,6 +53,11 @@
             android:exported="false"
             android:theme="@style/Theme.VerumOmnisForensic" />
 
+        <activity
+            android:name=".ui.FileIntakeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.VerumOmnisForensic" />
+
         <!-- File Provider for sharing reports -->
         <provider
             android:name="androidx.core.content.FileProvider"

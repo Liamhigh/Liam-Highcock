@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F1E36">
+
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#1A2744"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Import File Evidence"
+                android:textSize="20sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvCaseId"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Case: CASE-XXXXXXXX"
+                android:textSize="12sp"
+                android:textColor="#1E88E5" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        app:layout_constraintBottom_toTopOf="@id/footer">
+
+        <!-- Icon -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📂"
+            android:textSize="72sp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Import Evidence File"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Subtitle -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select a document, image, or file from your device"
+            android:textSize="14sp"
+            android:textColor="#AAAAAA"
+            android:gravity="center"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Pick Document Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPickDocument"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:text="📄 Pick Document"
+            android:textSize="16sp"
+            app:backgroundTint="#1E88E5"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Pick Image Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPickImage"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:text="📷 Pick Image"
+            android:textSize="16sp"
+            app:backgroundTint="#4CAF50"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Supported Formats -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Supported: PDF, Images, Text, Word Documents"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Status -->
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ready to import file"
+            android:textSize="14sp"
+            android:textColor="#4CAF50"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Location -->
+        <TextView
+            android:id="@+id/tvLocation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Location: Acquiring..."
+            android:textSize="12sp"
+            android:textColor="#888888" />
+
+    </LinearLayout>
+
+    <!-- Footer -->
+    <LinearLayout
+        android:id="@+id/footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="#1A2744"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

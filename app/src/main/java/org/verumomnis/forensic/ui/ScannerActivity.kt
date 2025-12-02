@@ -212,35 +212,48 @@ class ScannerActivity : AppCompatActivity() {
     private fun processAndSaveEvidence(imageFile: File, filename: String) {
         lifecycleScope.launch {
             try {
-                val imageBytes = withContext(Dispatchers.IO) {
-                    imageFile.readBytes()
+                // All heavy processing on IO thread
+                val result = withContext(Dispatchers.IO) {
+                    val imageBytes = imageFile.readBytes()
+                    
+                    // Extract EXIF metadata from the image
+                    val metadataExtractor = org.verumomnis.forensic.metadata.EvidenceMetadataExtractor(this@ScannerActivity)
+                    val imageMetadata = metadataExtractor.extractImageMetadata(imageFile)
+                    
+                    // Prefer EXIF location if available and current location is not
+                    val finalLocation = currentLocation ?: imageMetadata.location
+                    
+                    // Add evidence (includes SHA-512 hashing)
+                    val evidence = forensicEngine.addEvidence(
+                        caseId = caseId!!,
+                        type = evidenceType,
+                        content = imageBytes,
+                        mimeType = "image/jpeg",
+                        filename = filename,
+                        location = finalLocation
+                    )
+                    
+                    // Clean up temp file
+                    imageFile.delete()
+                    
+                    if (evidence != null) {
+                        // Seal immediately (HMAC-SHA512)
+                        forensicEngine.sealEvidence(caseId!!, evidence.id)
+                    }
+                    
+                    evidence
                 }
 
-                val evidence = forensicEngine.addEvidence(
-                    caseId = caseId!!,
-                    type = evidenceType,
-                    content = imageBytes,
-                    mimeType = "image/jpeg",
-                    filename = filename,
-                    location = currentLocation
-                )
-
-                // Clean up temp file
-                imageFile.delete()
-
-                if (evidence != null) {
-                    // Seal immediately
-                    forensicEngine.sealEvidence(caseId!!, evidence.id)
-                    
+                if (result != null) {
                     Toast.makeText(
                         this@ScannerActivity,
-                        "Evidence captured and sealed: ${evidence.id}",
+                        "Evidence captured and sealed: ${result.id}",
                         Toast.LENGTH_LONG
                     ).show()
 
                     // Return result
                     val resultIntent = Intent().apply {
-                        putExtra(RESULT_EVIDENCE_ID, evidence.id)
+                        putExtra(RESULT_EVIDENCE_ID, result.id)
                         putExtra(EXTRA_CASE_ID, caseId)
                     }
                     setResult(RESULT_OK, resultIntent)
