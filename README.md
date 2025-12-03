@@ -54,11 +54,24 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 
 ## 🚀 Building
 
-### Prerequisites
+**For detailed build instructions, see [BUILD.md](BUILD.md)**
+
+### Quick Start
+
+#### Prerequisites
 
 - Android Studio Hedgehog or later
 - JDK 17
 - Android SDK 34
+
+#### Clone and Build
+
+```bash
+git clone https://github.com/Liamhigh/Liam-Highcock.git
+cd Liam-Highcock
+git checkout copilot/create-complete-build-branch
+./gradlew assembleDebug
+```
 
 ### Build Debug APK
 
@@ -73,6 +86,16 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 ```
 
 The APK will be output to `app/build/outputs/apk/`
+
+### Using Android Studio
+
+1. Open Android Studio
+2. Select "Open an Existing Project"
+3. Navigate to the cloned repository
+4. Wait for Gradle sync to complete
+5. Build > Build Bundle(s) / APK(s) > Build APK(s)
+
+For comprehensive build instructions, troubleshooting, and configuration options, see **[BUILD.md](BUILD.md)**.
 
 ### Download Signed APKs from GitHub Actions
 

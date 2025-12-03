@@ -1,0 +1,20 @@
+## Template for local.properties configuration file
+# This file specifies the location of the Android SDK on your machine.
+# 
+# INSTRUCTIONS:
+# 1. Copy this file to 'local.properties' (or let Android Studio create it)
+# 2. Edit the sdk.dir line below to point to your Android SDK location
+# 3. Remove or uncomment the sdk.dir line and replace the path
+#
+# This file is automatically ignored by git (see .gitignore)
+#
+# Location of the android SDK. This is only used by Gradle.
+# Examples:
+#
+# For Windows: sdk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\sdk
+# For Linux: sdk.dir=/home/yourusername/Android/Sdk
+# For macOS: sdk.dir=/Users/yourusername/Library/Android/sdk
+#
+# Uncomment and edit the line below with your actual SDK path:
+# sdk.dir=/Users/yourusername/Library/Android/sdk
+
