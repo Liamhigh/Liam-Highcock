@@ -4,34 +4,65 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
-import android.location.LocationManager
-import android.os.Looper
+import android.util.Log
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.verumomnis.forensic.core.ForensicLocation
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 /**
- * Forensic Location Service
+ * Forensic Location Service for GPS evidence tagging
  * 
- * Provides GPS location capture for evidence geolocation.
- * All location data is stored locally and never transmitted.
+ * Provides accurate GPS coordinates for evidence collection,
+ * enabling court-admissible location verification.
  * 
  * @author Liam Highcock
- * @version 1.0.0
  */
 class ForensicLocationService(private val context: Context) {
+
+    companion object {
+        private const val TAG = "ForensicLocation"
+    }
 
     private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
 
-    private val locationManager: LocationManager =
-        context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    /**
+     * Gets the current GPS location
+     * @return ForensicLocation with coordinates and accuracy, or null if unavailable
+     */
+    suspend fun getCurrentLocation(): ForensicLocation? {
+        if (!hasLocationPermission()) {
+            Log.w(TAG, "Location permission not granted")
+            return null
+        }
+
+        return try {
+            val location = getLastKnownLocation() ?: getCurrentLocationAsync()
+            location?.let {
+                ForensicLocation(
+                    latitude = it.latitude,
+                    longitude = it.longitude,
+                    accuracy = it.accuracy,
+                    altitude = if (it.hasAltitude()) it.altitude else null,
+                    timestamp = it.time,
+                    provider = it.provider ?: "unknown"
+                )
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Security exception getting location", e)
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting location", e)
+            null
+        }
+    }
 
     /**
-     * Check if location permissions are granted
+     * Checks if location permission is granted
      */
     fun hasLocationPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
@@ -41,127 +72,80 @@ class ForensicLocationService(private val context: Context) {
     }
 
     /**
-     * Check if GPS is enabled
+     * Gets the last known location (fast but may be stale)
      */
-    fun isGpsEnabled(): Boolean {
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-    }
-
-    /**
-     * Get current location
-     */
-    suspend fun getCurrentLocation(): ForensicLocation? {
+    @Suppress("MissingPermission")
+    private suspend fun getLastKnownLocation(): Location? = suspendCancellableCoroutine { continuation ->
         if (!hasLocationPermission()) {
-            return null
+            continuation.resume(null)
+            return@suspendCancellableCoroutine
         }
 
-        return try {
-            suspendCancellableCoroutine { continuation ->
-                try {
-                    val locationRequest = LocationRequest.Builder(
-                        Priority.PRIORITY_HIGH_ACCURACY,
-                        1000
-                    ).apply {
-                        setMinUpdateDistanceMeters(0f)
-                        setMaxUpdates(1)
-                        setWaitForAccurateLocation(true)
-                    }.build()
-
-                    val locationCallback = object : LocationCallback() {
-                        override fun onLocationResult(result: LocationResult) {
-                            fusedLocationClient.removeLocationUpdates(this)
-                            result.lastLocation?.let { location ->
-                                continuation.resume(location.toForensicLocation())
-                            } ?: continuation.resume(null)
-                        }
-                    }
-
-                    fusedLocationClient.requestLocationUpdates(
-                        locationRequest,
-                        locationCallback,
-                        Looper.getMainLooper()
-                    )
-
-                    continuation.invokeOnCancellation {
-                        fusedLocationClient.removeLocationUpdates(locationCallback)
-                    }
-                } catch (e: SecurityException) {
-                    continuation.resume(null)
-                }
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location ->
+                continuation.resume(location)
             }
-        } catch (e: Exception) {
-            null
-        }
+            .addOnFailureListener {
+                continuation.resume(null)
+            }
     }
 
     /**
-     * Get last known location (faster but may be stale)
+     * Gets current location with high accuracy
      */
-    suspend fun getLastKnownLocation(): ForensicLocation? {
+    @Suppress("MissingPermission")
+    private suspend fun getCurrentLocationAsync(): Location? = suspendCancellableCoroutine { continuation ->
         if (!hasLocationPermission()) {
-            return null
+            continuation.resume(null)
+            return@suspendCancellableCoroutine
         }
 
-        return try {
-            suspendCancellableCoroutine { continuation ->
-                try {
-                    fusedLocationClient.lastLocation
-                        .addOnSuccessListener { location: Location? ->
-                            continuation.resume(location?.toForensicLocation())
-                        }
-                        .addOnFailureListener {
-                            continuation.resume(null)
-                        }
-                } catch (e: SecurityException) {
-                    continuation.resume(null)
-                }
-            }
-        } catch (e: Exception) {
-            null
+        val cancellationTokenSource = CancellationTokenSource()
+        
+        continuation.invokeOnCancellation {
+            cancellationTokenSource.cancel()
         }
+
+        fusedLocationClient.getCurrentLocation(
+            Priority.PRIORITY_HIGH_ACCURACY,
+            cancellationTokenSource.token
+        ).addOnSuccessListener { location ->
+            continuation.resume(location)
+        }.addOnFailureListener {
+            continuation.resume(null)
+        }
+    }
+}
+
+/**
+ * Data class representing a forensic location with full metadata
+ */
+data class ForensicLocation(
+    val latitude: Double,
+    val longitude: Double,
+    val accuracy: Float,
+    val altitude: Double? = null,
+    val timestamp: Long,
+    val provider: String
+) {
+    /**
+     * Formats location for display
+     */
+    fun toDisplayString(): String {
+        return "%.6f, %.6f (±%.0fm)".format(latitude, longitude, accuracy)
     }
 
     /**
-     * Extension function to convert Android Location to ForensicLocation
+     * Formats location for forensic report
      */
-    private fun Location.toForensicLocation(): ForensicLocation {
-        return ForensicLocation(
-            latitude = latitude,
-            longitude = longitude,
-            accuracy = accuracy,
-            altitude = if (hasAltitude()) altitude else null,
-            timestamp = time,
-            provider = provider ?: "unknown"
-        )
-    }
-
-    /**
-     * Format location for display
-     */
-    fun formatLocation(location: ForensicLocation): String {
+    fun toForensicString(): String {
         return buildString {
-            append("Lat: ${String.format("%.6f", location.latitude)}")
-            append(", ")
-            append("Lon: ${String.format("%.6f", location.longitude)}")
-            append(" (±${String.format("%.1f", location.accuracy)}m)")
-        }
-    }
-
-    /**
-     * Format location for forensic report
-     */
-    fun formatLocationForReport(location: ForensicLocation): String {
-        return buildString {
-            appendLine("GEOLOCATION DATA")
-            appendLine("================")
-            appendLine("Latitude: ${location.latitude}")
-            appendLine("Longitude: ${location.longitude}")
-            appendLine("Accuracy: ±${location.accuracy} meters")
-            location.altitude?.let {
-                appendLine("Altitude: $it meters")
-            }
-            appendLine("Provider: ${location.provider}")
-            appendLine("Timestamp: ${java.util.Date(location.timestamp)}")
+            append("Latitude: $latitude\n")
+            append("Longitude: $longitude\n")
+            append("Accuracy: ${accuracy}m\n")
+            altitude?.let { append("Altitude: ${it}m\n") }
+            append("Provider: $provider\n")
+            append("Captured: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", java.util.Locale.US).format(java.util.Date(timestamp))}")
         }
     }
 }

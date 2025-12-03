@@ -3,65 +3,48 @@ package org.verumomnis.forensic.ui
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.verumomnis.forensic.R
-import org.verumomnis.forensic.core.*
+import org.verumomnis.forensic.core.EvidenceType
+import org.verumomnis.forensic.core.ForensicCase
+import org.verumomnis.forensic.core.ForensicEngine
+import org.verumomnis.forensic.core.ForensicEvidence
 import org.verumomnis.forensic.databinding.ActivityCaseDetailBinding
-import org.verumomnis.forensic.leveler.LevelerEngine
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 /**
  * Case Detail Activity
  * 
- * Displays detailed case information:
- * - Case metadata
- * - Evidence list
- * - Add evidence options
- * - Leveler analysis results
- * - Generate report option
+ * Displays case details and allows adding evidence
+ * Easy-to-use interface for SAPS officers
  * 
  * @author Liam Highcock
- * @version 1.0.0
  */
 class CaseDetailActivity : AppCompatActivity() {
 
     companion object {
-        const val EXTRA_CASE_ID = "caseId"
+        const val EXTRA_CASE_ID = "extra_case_id"
     }
 
     private lateinit var binding: ActivityCaseDetailBinding
     private lateinit var forensicEngine: ForensicEngine
     private lateinit var evidenceAdapter: EvidenceAdapter
-    
+    private var currentCase: ForensicCase? = null
     private var caseId: String? = null
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-
-    // Scanner launcher
-    private val scannerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            refreshCaseDetails()
-        }
-    }
-
-    // File intake launcher
-    private val fileIntakeLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            refreshCaseDetails()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,428 +52,231 @@ class CaseDetailActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         caseId = intent.getStringExtra(EXTRA_CASE_ID)
-
         if (caseId == null) {
-            Toast.makeText(this, "No case specified", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Invalid case", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
         forensicEngine = ForensicEngine(this)
-        setupUI()
-        refreshCaseDetails()
+        
+        setupToolbar()
+        setupRecyclerView()
+        setupButtons()
+        loadCase()
     }
 
-    private fun setupUI() {
-        binding.btnBack.setOnClickListener {
-            finish()
-        }
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
+    }
 
+    private fun setupRecyclerView() {
+        evidenceAdapter = EvidenceAdapter()
+        binding.recyclerViewEvidence.apply {
+            layoutManager = LinearLayoutManager(this@CaseDetailActivity)
+            adapter = evidenceAdapter
+        }
+    }
+
+    private fun setupButtons() {
+        // Add Document Evidence
         binding.btnAddDocument.setOnClickListener {
-            openScanner(EvidenceType.DOCUMENT)
+            showAddEvidenceDialog(EvidenceType.DOCUMENT)
         }
 
+        // Add Photo Evidence
         binding.btnAddPhoto.setOnClickListener {
-            openScanner(EvidenceType.PHOTO)
+            val intent = Intent(this, ScannerActivity::class.java).apply {
+                putExtra(ScannerActivity.EXTRA_CASE_ID, caseId)
+            }
+            startActivity(intent)
         }
 
+        // Add Text Note
         binding.btnAddNote.setOnClickListener {
-            showAddNoteDialog()
+            showAddEvidenceDialog(EvidenceType.TEXT_NOTE)
         }
 
-        binding.btnImportFile.setOnClickListener {
-            openFileIntake()
-        }
-
+        // Generate Report
         binding.btnGenerateReport.setOnClickListener {
             generateReport()
         }
-
-        binding.btnRunAnalysis.setOnClickListener {
-            runLevelerAnalysis()
-        }
-
-        binding.btnSealCase.setOnClickListener {
-            sealCase()
-        }
-
-        // Setup evidence RecyclerView
-        evidenceAdapter = EvidenceAdapter { evidence ->
-            showEvidenceDetails(evidence)
-        }
-        binding.rvEvidence.layoutManager = LinearLayoutManager(this)
-        binding.rvEvidence.adapter = evidenceAdapter
     }
 
-    private fun openFileIntake() {
-        val intent = Intent(this, FileIntakeActivity::class.java).apply {
-            putExtra(FileIntakeActivity.EXTRA_CASE_ID, caseId)
-        }
-        fileIntakeLauncher.launch(intent)
-    }
-
-    private fun refreshCaseDetails() {
-        val forensicCase = forensicEngine.getCase(caseId!!)
-
-        if (forensicCase == null) {
+    private fun loadCase() {
+        currentCase = forensicEngine.getCase(caseId!!)
+        currentCase?.let { case ->
+            supportActionBar?.title = case.caseNumber
+            binding.textCaseDescription.text = case.description
+            binding.textCaseStatus.text = "Status: ${case.status}"
+            binding.textEvidenceCount.text = "Evidence Items: ${case.evidence.size}"
+            
+            evidenceAdapter.submitList(case.evidence)
+            
+            binding.textNoEvidence.visibility = 
+                if (case.evidence.isEmpty()) View.VISIBLE else View.GONE
+            binding.recyclerViewEvidence.visibility = 
+                if (case.evidence.isEmpty()) View.GONE else View.VISIBLE
+                
+            // Enable report generation only if there's evidence
+            binding.btnGenerateReport.isEnabled = case.evidence.isNotEmpty()
+        } ?: run {
             Toast.makeText(this, "Case not found", Toast.LENGTH_SHORT).show()
             finish()
-            return
         }
-
-        // Case header
-        binding.tvCaseId.text = forensicCase.id
-        binding.tvCaseName.text = forensicCase.name
-        binding.tvStatus.text = "Status: ${forensicCase.status.name}"
-        binding.tvCreated.text = "Created: ${dateFormat.format(Date(forensicCase.createdAt))}"
-        binding.tvModified.text = "Modified: ${dateFormat.format(Date(forensicCase.modifiedAt))}"
-
-        // Description
-        binding.tvDescription.text = forensicCase.description.ifEmpty { "No description" }
-
-        // Evidence count
-        binding.tvEvidenceCount.text = "${forensicCase.evidence.size} Evidence Item(s)"
-
-        // Evidence list
-        evidenceAdapter.updateEvidence(forensicCase.evidence)
-        binding.emptyEvidence.visibility = 
-            if (forensicCase.evidence.isEmpty()) View.VISIBLE else View.GONE
-        binding.rvEvidence.visibility = 
-            if (forensicCase.evidence.isEmpty()) View.GONE else View.VISIBLE
-
-        // Integrity hash
-        binding.tvIntegrityHash.text = forensicCase.integrityHash?.let {
-            "Integrity: ${it.take(32)}..."
-        } ?: "Not sealed"
-
-        // Enable/disable buttons based on case status
-        val isOpen = forensicCase.status == CaseStatus.OPEN
-        binding.btnAddDocument.isEnabled = isOpen
-        binding.btnAddPhoto.isEnabled = isOpen
-        binding.btnAddNote.isEnabled = isOpen
-        binding.btnImportFile.isEnabled = isOpen
-        binding.btnSealCase.isEnabled = isOpen && forensicCase.evidence.isNotEmpty()
-        binding.btnGenerateReport.isEnabled = forensicCase.evidence.isNotEmpty()
-        binding.btnExportCase.isEnabled = forensicCase.evidence.isNotEmpty()
     }
 
-    private fun openScanner(type: EvidenceType) {
-        val intent = Intent(this, ScannerActivity::class.java).apply {
-            putExtra(ScannerActivity.EXTRA_CASE_ID, caseId)
-            putExtra(ScannerActivity.EXTRA_EVIDENCE_TYPE, type)
+    private fun showAddEvidenceDialog(type: EvidenceType) {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 32, 48, 32)
         }
-        scannerLauncher.launch(intent)
-    }
 
-    private fun openAudioRecorder() {
-        val intent = Intent(this, AudioRecorderActivity::class.java).apply {
-            putExtra(AudioRecorderActivity.EXTRA_CASE_ID, caseId)
+        val descriptionInput = EditText(this).apply {
+            hint = when (type) {
+                EvidenceType.DOCUMENT -> "Document description"
+                EvidenceType.TEXT_NOTE -> "Enter your notes"
+                else -> "Evidence description"
+            }
+            if (type == EvidenceType.TEXT_NOTE) {
+                minLines = 4
+            }
         }
-        audioRecorderLauncher.launch(intent)
-    }
 
-    private fun openVideoRecorder() {
-        val intent = Intent(this, VideoRecorderActivity::class.java).apply {
-            putExtra(VideoRecorderActivity.EXTRA_CASE_ID, caseId)
-        }
-        videoRecorderLauncher.launch(intent)
-    }
+        layout.addView(descriptionInput)
 
-    private fun exportCase() {
-        binding.progressBar.visibility = View.VISIBLE
-        
-        lifecycleScope.launch {
-            try {
-                val exportFile = forensicEngine.exportCase(caseId!!)
-                
-                binding.progressBar.visibility = View.GONE
-                
-                if (exportFile != null) {
-                    Toast.makeText(
-                        this@CaseDetailActivity,
-                        "Case exported to: ${exportFile.absolutePath}",
-                        Toast.LENGTH_LONG
-                    ).show()
+        AlertDialog.Builder(this)
+            .setTitle("Add ${type.name.replace("_", " ")}")
+            .setView(layout)
+            .setPositiveButton("Add") { _, _ ->
+                val description = descriptionInput.text.toString().trim()
+                if (description.isNotEmpty()) {
+                    addEvidence(type, description)
                 } else {
-                    Toast.makeText(
-                        this@CaseDetailActivity,
-                        "Failed to export case",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(this, "Please enter a description", Toast.LENGTH_SHORT).show()
                 }
-            } catch (e: Exception) {
-                binding.progressBar.visibility = View.GONE
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun addEvidence(type: EvidenceType, description: String) {
+        lifecycleScope.launch {
+            val evidence = forensicEngine.addEvidence(
+                caseId = caseId!!,
+                type = type,
+                description = description
+            )
+            
+            if (evidence != null) {
+                loadCase()
                 Toast.makeText(
-                    this@CaseDetailActivity,
-                    "Export error: ${e.message}",
-                    Toast.LENGTH_LONG
+                    this@CaseDetailActivity, 
+                    "Evidence added with GPS location", 
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                Toast.makeText(
+                    this@CaseDetailActivity, 
+                    "Failed to add evidence", 
+                    Toast.LENGTH_SHORT
                 ).show()
             }
         }
-    }
-
-    private fun showAddNoteDialog() {
-        val noteInput = android.widget.EditText(this).apply {
-            hint = "Enter text note..."
-            minLines = 3
-            gravity = android.view.Gravity.TOP
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("Add Text Note")
-            .setView(noteInput)
-            .setPositiveButton("Add") { _, _ ->
-                val noteText = noteInput.text.toString().trim()
-                if (noteText.isNotEmpty()) {
-                    addTextNote(noteText)
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun addTextNote(text: String) {
-        binding.progressBar.visibility = View.VISIBLE
-        
-        lifecycleScope.launch {
-            try {
-                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-                
-                val evidence = withContext(Dispatchers.IO) {
-                    forensicEngine.addEvidence(
-                        caseId = caseId!!,
-                        type = EvidenceType.TEXT,
-                        content = text.toByteArray(Charsets.UTF_8),
-                        mimeType = "text/plain",
-                        filename = "NOTE_$timestamp.txt"
-                    )
-                }
-
-                if (evidence != null) {
-                    withContext(Dispatchers.IO) {
-                        forensicEngine.sealEvidence(caseId!!, evidence.id)
-                    }
-                    binding.progressBar.visibility = View.GONE
-                    Toast.makeText(this@CaseDetailActivity, "Note added: ${evidence.id}", Toast.LENGTH_SHORT).show()
-                    refreshCaseDetails()
-                } else {
-                    binding.progressBar.visibility = View.GONE
-                    Toast.makeText(this@CaseDetailActivity, "Failed to add note", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                binding.progressBar.visibility = View.GONE
-                Toast.makeText(this@CaseDetailActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    private fun sealCase() {
-        AlertDialog.Builder(this)
-            .setTitle("Seal Case")
-            .setMessage(
-                "Sealing the case will:\n\n" +
-                "• Lock all evidence (no more additions)\n" +
-                "• Generate integrity hash\n" +
-                "• Enable report generation\n\n" +
-                "This action cannot be undone."
-            )
-            .setPositiveButton("Seal Case") { _, _ ->
-                binding.progressBar.visibility = View.VISIBLE
-                
-                lifecycleScope.launch {
-                    try {
-                        val sealedCase = withContext(Dispatchers.IO) {
-                            forensicEngine.sealCase(caseId!!)
-                        }
-                        
-                        binding.progressBar.visibility = View.GONE
-                        
-                        if (sealedCase != null) {
-                            Toast.makeText(this@CaseDetailActivity, "Case sealed successfully", Toast.LENGTH_SHORT).show()
-                            refreshCaseDetails()
-                        } else {
-                            Toast.makeText(this@CaseDetailActivity, "Failed to seal case", Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) {
-                        binding.progressBar.visibility = View.GONE
-                        Toast.makeText(this@CaseDetailActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
     }
 
     private fun generateReport() {
         binding.progressBar.visibility = View.VISIBLE
+        binding.btnGenerateReport.isEnabled = false
 
         lifecycleScope.launch {
             try {
-                val report = withContext(Dispatchers.IO) {
-                    forensicEngine.generateReport(caseId!!)
-                }
-
+                val result = forensicEngine.generateReport(caseId!!)
+                
                 binding.progressBar.visibility = View.GONE
-
-                if (report != null) {
-                    openReportViewer(report)
+                binding.btnGenerateReport.isEnabled = true
+                
+                if (result != null) {
+                    showReportGeneratedDialog(result.reportPath)
                 } else {
                     Toast.makeText(
-                        this@CaseDetailActivity,
-                        "Failed to generate report",
+                        this@CaseDetailActivity, 
+                        "Failed to generate report", 
                         Toast.LENGTH_SHORT
                     ).show()
                 }
             } catch (e: Exception) {
                 binding.progressBar.visibility = View.GONE
+                binding.btnGenerateReport.isEnabled = true
                 Toast.makeText(
-                    this@CaseDetailActivity,
-                    "Error: ${e.message}",
-                    Toast.LENGTH_LONG
+                    this@CaseDetailActivity, 
+                    "Error: ${e.message}", 
+                    Toast.LENGTH_SHORT
                 ).show()
             }
         }
     }
 
-    private fun openReportViewer(report: ForensicReport) {
+    private fun showReportGeneratedDialog(reportPath: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Report Generated")
+            .setMessage("Forensic report has been generated successfully.\n\nPath: $reportPath")
+            .setPositiveButton("View Report") { _, _ ->
+                openReport(reportPath)
+            }
+            .setNeutralButton("Share") { _, _ ->
+                shareReport(reportPath)
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    private fun openReport(reportPath: String) {
         val intent = Intent(this, ReportViewerActivity::class.java).apply {
-            putExtra(ReportViewerActivity.EXTRA_REPORT_ID, report.id)
-            putExtra(ReportViewerActivity.EXTRA_CASE_ID, report.caseId)
+            putExtra(ReportViewerActivity.EXTRA_REPORT_PATH, reportPath)
         }
         startActivity(intent)
     }
 
-    private fun runLevelerAnalysis() {
-        val forensicCase = forensicEngine.getCase(caseId!!) ?: return
+    private fun shareReport(reportPath: String) {
+        val file = File(reportPath)
+        val uri = FileProvider.getUriForFile(
+            this,
+            "${packageName}.fileprovider",
+            file
+        )
 
-        binding.progressBar.visibility = View.VISIBLE
-
-        lifecycleScope.launch {
-            try {
-                val result = withContext(Dispatchers.Default) {
-                    // Create statements from evidence (for demo purposes)
-                    val statements = forensicCase.evidence.mapIndexed { index, ev ->
-                        LevelerEngine.Statement(
-                            id = ev.id,
-                            speaker = "Evidence",
-                            content = ev.metadata.filename ?: "Evidence $index",
-                            timestamp = ev.timestamp,
-                            source = ev.id
-                        )
-                    }
-
-                    LevelerEngine.analyze(
-                        statements = statements,
-                        evidence = forensicCase.evidence
-                    )
-                }
-
-                binding.progressBar.visibility = View.GONE
-                showLevelerResults(result)
-            } catch (e: Exception) {
-                binding.progressBar.visibility = View.GONE
-                Toast.makeText(
-                    this@CaseDetailActivity,
-                    "Analysis error: ${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-    }
-
-    private fun showLevelerResults(result: LevelerEngine.LevelerResult) {
-        val message = buildString {
-            appendLine("LEVELER ANALYSIS RESULTS")
-            appendLine("========================")
-            appendLine()
-            appendLine("Integrity Score: ${result.integrityScore.toInt()}/100")
-            appendLine("Confidence: ${(result.confidence * 100).toInt()}%")
-            appendLine()
-            appendLine("Contradictions: ${result.contradictions.size}")
-            appendLine("Timeline Anomalies: ${result.timelineAnomalies.size}")
-            appendLine("Missing Evidence: ${result.missingEvidence.size}")
-            appendLine("Behavioral Patterns: ${result.behavioralPatterns.size}")
-            appendLine()
-            appendLine("RECOMMENDATIONS:")
-            result.recommendations.forEach {
-                appendLine("• $it")
-            }
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("B1-B9 Analysis Complete")
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .show()
-    }
-
-    private fun showEvidenceDetails(evidence: ForensicEvidence) {
-        val details = buildString {
-            appendLine("ID: ${evidence.id}")
-            appendLine("Type: ${evidence.type.name}")
-            appendLine("Filename: ${evidence.metadata.filename ?: "N/A"}")
-            appendLine("Size: ${formatFileSize(evidence.metadata.fileSize)}")
-            appendLine("MIME: ${evidence.mimeType}")
-            appendLine()
-            appendLine("Captured: ${dateFormat.format(Date(evidence.timestamp))}")
-            appendLine("Device: ${evidence.metadata.deviceInfo}")
-            appendLine()
-            appendLine("Sealed: ${if (evidence.sealed) "Yes ✓" else "No"}")
-            appendLine()
-            evidence.location?.let { loc ->
-                appendLine("Location: ${loc.latitude}, ${loc.longitude}")
-                appendLine("Accuracy: ±${loc.accuracy}m")
-            } ?: appendLine("Location: Not captured")
-            appendLine()
-            appendLine("Content Hash:")
-            appendLine(evidence.contentHash.take(64))
-            appendLine(evidence.contentHash.drop(64))
-            if (evidence.sealHash != null) {
-                appendLine()
-                appendLine("Seal Hash:")
-                appendLine(evidence.sealHash.take(64))
-                appendLine(evidence.sealHash.drop(64))
-            }
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("Evidence Details")
-            .setMessage(details)
-            .setPositiveButton("OK", null)
-            .show()
-    }
-
-    private fun formatFileSize(bytes: Long): String {
-        return when {
-            bytes < 1024 -> "$bytes B"
-            bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-            else -> "${bytes / (1024 * 1024)} MB"
-        }
+        startActivity(Intent.createChooser(intent, "Share Report"))
     }
 
     override fun onResume() {
         super.onResume()
-        refreshCaseDetails()
+        loadCase()
     }
 }
 
 /**
- * Adapter for evidence list
+ * RecyclerView Adapter for displaying evidence items
  */
-class EvidenceAdapter(
-    private val onEvidenceClick: (ForensicEvidence) -> Unit
-) : androidx.recyclerview.widget.RecyclerView.Adapter<EvidenceAdapter.EvidenceViewHolder>() {
+class EvidenceAdapter : RecyclerView.Adapter<EvidenceAdapter.EvidenceViewHolder>() {
 
     private var evidence: List<ForensicEvidence> = emptyList()
-    private val dateFormat = SimpleDateFormat("MM-dd HH:mm", Locale.US)
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
-    fun updateEvidence(newEvidence: List<ForensicEvidence>) {
-        evidence = newEvidence.sortedByDescending { it.timestamp }
+    fun submitList(newEvidence: List<ForensicEvidence>) {
+        evidence = newEvidence
         notifyDataSetChanged()
     }
 
-    override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): EvidenceViewHolder {
-        val view = android.view.LayoutInflater.from(parent.context)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EvidenceViewHolder {
+        val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_evidence, parent, false)
         return EvidenceViewHolder(view)
     }
@@ -499,31 +285,27 @@ class EvidenceAdapter(
         holder.bind(evidence[position])
     }
 
-    override fun getItemCount() = evidence.size
+    override fun getItemCount(): Int = evidence.size
 
-    inner class EvidenceViewHolder(view: View) : 
-        androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
-        
-        private val tvEvidenceId: android.widget.TextView = view.findViewById(R.id.tvEvidenceId)
-        private val tvType: android.widget.TextView = view.findViewById(R.id.tvType)
-        private val tvFilename: android.widget.TextView = view.findViewById(R.id.tvFilename)
-        private val tvTimestamp: android.widget.TextView = view.findViewById(R.id.tvTimestamp)
-        private val tvSealed: android.widget.TextView = view.findViewById(R.id.tvSealed)
-
-        fun bind(evidence: ForensicEvidence) {
-            tvEvidenceId.text = evidence.id
-            tvType.text = evidence.type.name
-            tvFilename.text = evidence.metadata.filename ?: "Unnamed"
-            tvTimestamp.text = dateFormat.format(Date(evidence.timestamp))
-            tvSealed.text = if (evidence.sealed) "SEALED ✓" else "UNSEALED"
-            tvSealed.setTextColor(
-                if (evidence.sealed) 
-                    android.graphics.Color.parseColor("#4CAF50")
-                else 
-                    android.graphics.Color.parseColor("#FF9800")
-            )
-
-            itemView.setOnClickListener { onEvidenceClick(evidence) }
+    inner class EvidenceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        fun bind(item: ForensicEvidence) {
+            itemView.findViewById<android.widget.TextView>(R.id.textEvidenceType).text = 
+                item.type.name.replace("_", " ")
+            itemView.findViewById<android.widget.TextView>(R.id.textEvidenceDescription).text = 
+                item.description
+            itemView.findViewById<android.widget.TextView>(R.id.textEvidenceTimestamp).text = 
+                dateFormat.format(Date(item.capturedAt))
+            
+            val locationText = if (item.latitude != null && item.longitude != null) {
+                "📍 %.4f, %.4f".format(item.latitude, item.longitude)
+            } else {
+                "📍 No GPS data"
+            }
+            itemView.findViewById<android.widget.TextView>(R.id.textEvidenceLocation).text = locationText
+            
+            val hashText = item.contentHash?.take(16) ?: "—"
+            itemView.findViewById<android.widget.TextView>(R.id.textEvidenceHash).text = 
+                "Hash: $hashText..."
         }
     }
 }

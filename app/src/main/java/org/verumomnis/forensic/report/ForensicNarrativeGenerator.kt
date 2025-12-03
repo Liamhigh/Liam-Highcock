@@ -1,295 +1,237 @@
 package org.verumomnis.forensic.report
 
-import org.verumomnis.forensic.core.*
+import org.verumomnis.forensic.core.EvidenceType
+import org.verumomnis.forensic.core.ForensicCase
+import org.verumomnis.forensic.core.ForensicEvidence
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 /**
  * Forensic Narrative Generator
  * 
- * Generates AI-readable forensic narratives following legal admissibility standards.
- * Produces structured reports with chain of custody documentation.
+ * Generates structured forensic narratives following legal admissibility standards.
+ * AI-readable format for automated analysis and court presentation.
  * 
  * @author Liam Highcock
- * @version 1.0.0
  */
 class ForensicNarrativeGenerator {
 
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.US)
-
-    /**
-     * Generate full forensic narrative for a case
-     */
-    fun generateNarrative(forensicCase: ForensicCase): String {
-        return buildString {
-            appendLine(generateHeader(forensicCase))
-            appendLine()
-            appendLine(generateExecutiveSummary(forensicCase))
-            appendLine()
-            appendLine(generateEvidenceInventory(forensicCase))
-            appendLine()
-            appendLine(generateChainOfCustody(forensicCase))
-            appendLine()
-            appendLine(generateIntegrityStatement(forensicCase))
-            appendLine()
-            appendLine(generateVerificationInstructions(forensicCase))
-            appendLine()
-            appendLine(generateFooter())
-        }
+    companion object {
+        private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
     }
 
     /**
-     * Generate report header
+     * Generates a complete forensic narrative for a case
      */
-    private fun generateHeader(forensicCase: ForensicCase): String {
-        return buildString {
-            appendLine("═══════════════════════════════════════════════════════════════════")
-            appendLine("                    VERUM OMNIS FORENSIC REPORT")
-            appendLine("═══════════════════════════════════════════════════════════════════")
-            appendLine()
-            appendLine("CASE REFERENCE: ${forensicCase.id}")
-            appendLine("CASE NAME: ${forensicCase.name}")
-            appendLine("REPORT GENERATED: ${dateFormat.format(Date())}")
-            appendLine("STATUS: ${forensicCase.status.name}")
-            appendLine()
-            appendLine("CONSTITUTIONAL GOVERNANCE: ACTIVE")
-            appendLine("CONSTITUTION VERSION: ${VerumOmnisApplication.CONSTITUTION_VERSION}")
-            appendLine()
-            appendLine("───────────────────────────────────────────────────────────────────")
+    fun generateNarrative(case: ForensicCase): ForensicNarrative {
+        val sections = mutableListOf<NarrativeSection>()
+
+        // Case Overview Section
+        sections.add(generateCaseOverview(case))
+
+        // Evidence Summary Section
+        sections.add(generateEvidenceSummary(case))
+
+        // Detailed Evidence Section
+        case.evidence.forEachIndexed { index, evidence ->
+            sections.add(generateEvidenceDetail(evidence, index + 1))
         }
+
+        // Chain of Custody Section
+        sections.add(generateChainOfCustody(case))
+
+        // Integrity Verification Section
+        sections.add(generateIntegritySection(case))
+
+        return ForensicNarrative(
+            caseNumber = case.caseNumber,
+            generatedAt = System.currentTimeMillis(),
+            sections = sections
+        )
     }
 
-    /**
-     * Generate executive summary
-     */
-    private fun generateExecutiveSummary(forensicCase: ForensicCase): String {
-        return buildString {
-            appendLine("EXECUTIVE SUMMARY")
-            appendLine("─────────────────")
+    private fun generateCaseOverview(case: ForensicCase): NarrativeSection {
+        val content = buildString {
+            appendLine("FORENSIC CASE OVERVIEW")
+            appendLine("=" .repeat(50))
             appendLine()
-            appendLine("This forensic report documents evidence collected under the")
-            appendLine("Verum Omnis Constitutional Governance Framework, ensuring:")
+            appendLine("Case Number: ${case.caseNumber}")
+            appendLine("Description: ${case.description}")
+            appendLine("Status: ${case.status}")
+            appendLine("Created: ${dateFormat.format(Date(case.createdAt))}")
+            appendLine("Evidence Count: ${case.evidence.size}")
             appendLine()
-            appendLine("  • Truth: All evidence is factually accurate and verifiable")
-            appendLine("  • Fairness: Protection of vulnerable parties maintained")
-            appendLine("  • Human Rights: Dignity, equality, and agency respected")
-            appendLine("  • Non-Extraction: No sensitive data transmitted externally")
-            appendLine("  • Integrity: No manipulation or bias in evidence handling")
-            appendLine()
-            
-            if (forensicCase.description.isNotEmpty()) {
-                appendLine("CASE DESCRIPTION:")
-                appendLine(forensicCase.description)
-                appendLine()
-            }
-            
-            appendLine("EVIDENCE STATISTICS:")
-            appendLine("  Total Evidence Items: ${forensicCase.evidence.size}")
-            appendLine("  Sealed Items: ${forensicCase.evidence.count { it.sealed }}")
-            
-            val byType = forensicCase.evidence.groupBy { it.type }
-            byType.forEach { (type, items) ->
-                appendLine("  ${type.name}: ${items.size} item(s)")
-            }
-            
-            appendLine()
-            appendLine("COLLECTION PERIOD:")
-            if (forensicCase.evidence.isNotEmpty()) {
-                val earliest = forensicCase.evidence.minByOrNull { it.timestamp }
-                val latest = forensicCase.evidence.maxByOrNull { it.timestamp }
-                appendLine("  First Evidence: ${dateFormat.format(Date(earliest!!.timestamp))}")
-                appendLine("  Last Evidence: ${dateFormat.format(Date(latest!!.timestamp))}")
-            } else {
-                appendLine("  No evidence collected")
-            }
+            appendLine("This report was generated in accordance with Verum Omnis")
+            appendLine("Constitutional Governance standards for forensic evidence.")
         }
+        return NarrativeSection(
+            title = "Case Overview",
+            content = content,
+            type = SectionType.HEADER
+        )
     }
 
-    /**
-     * Generate evidence inventory
-     */
-    private fun generateEvidenceInventory(forensicCase: ForensicCase): String {
-        return buildString {
-            appendLine("EVIDENCE INVENTORY")
-            appendLine("──────────────────")
+    private fun generateEvidenceSummary(case: ForensicCase): NarrativeSection {
+        val evidenceByType = case.evidence.groupBy { it.type }
+        
+        val content = buildString {
+            appendLine("EVIDENCE SUMMARY")
+            appendLine("=" .repeat(50))
             appendLine()
             
-            if (forensicCase.evidence.isEmpty()) {
-                appendLine("No evidence items in this case.")
-                return@buildString
-            }
-            
-            forensicCase.evidence.sortedBy { it.timestamp }.forEachIndexed { index, evidence ->
-                appendLine("┌─────────────────────────────────────────────────────────────────┐")
-                appendLine("│ EVIDENCE ITEM #${index + 1}")
-                appendLine("├─────────────────────────────────────────────────────────────────┤")
-                appendLine("│ ID: ${evidence.id}")
-                appendLine("│ TYPE: ${evidence.type.name}")
-                appendLine("│ FILENAME: ${evidence.metadata.filename ?: "N/A"}")
-                appendLine("│ SIZE: ${formatFileSize(evidence.metadata.fileSize)}")
-                appendLine("│ MIME TYPE: ${evidence.mimeType}")
-                appendLine("│ COLLECTED: ${dateFormat.format(Date(evidence.timestamp))}")
-                appendLine("│")
-                appendLine("│ CONTENT HASH (SHA-512):")
-                appendLine("│   ${evidence.contentHash.take(64)}")
-                appendLine("│   ${evidence.contentHash.drop(64)}")
-                appendLine("│")
-                appendLine("│ SEAL STATUS: ${if (evidence.sealed) "SEALED ✓" else "UNSEALED"}")
-                if (evidence.sealed && evidence.sealHash != null) {
-                    appendLine("│ SEAL HASH:")
-                    appendLine("│   ${evidence.sealHash.take(64)}")
-                    appendLine("│   ${evidence.sealHash.drop(64)}")
+            EvidenceType.entries.forEach { type ->
+                val count = evidenceByType[type]?.size ?: 0
+                if (count > 0) {
+                    appendLine("${type.name}: $count item(s)")
                 }
-                appendLine("│")
-                appendLine("│ GEOLOCATION:")
-                evidence.location?.let { loc ->
-                    appendLine("│   Latitude: ${loc.latitude}")
-                    appendLine("│   Longitude: ${loc.longitude}")
-                    appendLine("│   Accuracy: ±${loc.accuracy}m")
-                } ?: appendLine("│   Not captured")
-                appendLine("│")
-                appendLine("│ DEVICE: ${evidence.metadata.deviceInfo}")
-                appendLine("│ APP VERSION: ${evidence.metadata.appVersion}")
-                appendLine("└─────────────────────────────────────────────────────────────────┘")
-                appendLine()
             }
+            
+            appendLine()
+            appendLine("Total Evidence Items: ${case.evidence.size}")
         }
+        
+        return NarrativeSection(
+            title = "Evidence Summary",
+            content = content,
+            type = SectionType.SUMMARY
+        )
     }
 
-    /**
-     * Generate chain of custody documentation
-     */
-    private fun generateChainOfCustody(forensicCase: ForensicCase): String {
-        return buildString {
+    private fun generateEvidenceDetail(evidence: ForensicEvidence, index: Int): NarrativeSection {
+        val content = buildString {
+            appendLine("EVIDENCE ITEM #$index")
+            appendLine("-".repeat(40))
+            appendLine()
+            appendLine("ID: ${evidence.id}")
+            appendLine("Type: ${evidence.type}")
+            appendLine("Description: ${evidence.description}")
+            appendLine("Captured: ${dateFormat.format(Date(evidence.capturedAt))}")
+            
+            if (evidence.latitude != null && evidence.longitude != null) {
+                appendLine()
+                appendLine("GPS Location:")
+                appendLine("  Latitude: ${evidence.latitude}")
+                appendLine("  Longitude: ${evidence.longitude}")
+            }
+            
+            evidence.contentHash?.let {
+                appendLine()
+                appendLine("Content Hash (SHA-512):")
+                appendLine("  $it")
+            }
+            
+            evidence.sealHash?.let {
+                appendLine()
+                appendLine("Seal Hash:")
+                appendLine("  $it")
+            }
+            
+            evidence.metadata.notes?.let {
+                appendLine()
+                appendLine("Notes: $it")
+            }
+            
+            evidence.metadata.deviceInfo?.let {
+                appendLine("Device: $it")
+            }
+        }
+        
+        return NarrativeSection(
+            title = "Evidence #$index: ${evidence.description}",
+            content = content,
+            type = SectionType.EVIDENCE
+        )
+    }
+
+    private fun generateChainOfCustody(case: ForensicCase): NarrativeSection {
+        val content = buildString {
             appendLine("CHAIN OF CUSTODY")
-            appendLine("────────────────")
+            appendLine("=" .repeat(50))
             appendLine()
-            appendLine("This section documents the handling and custody of evidence.")
-            appendLine()
-            appendLine("CUSTODY EVENTS:")
-            appendLine()
-            
-            // Case creation
-            appendLine("1. CASE CREATION")
-            appendLine("   Time: ${dateFormat.format(Date(forensicCase.createdAt))}")
-            appendLine("   Action: Forensic case created")
-            appendLine("   Case ID: ${forensicCase.id}")
+            appendLine("This section documents the chain of custody for all")
+            appendLine("evidence items contained within this forensic report.")
             appendLine()
             
-            // Evidence collection events
-            forensicCase.evidence.sortedBy { it.timestamp }.forEachIndexed { index, evidence ->
-                appendLine("${index + 2}. EVIDENCE COLLECTION")
-                appendLine("   Time: ${dateFormat.format(Date(evidence.timestamp))}")
-                appendLine("   Action: ${evidence.type.name} evidence captured")
-                appendLine("   Evidence ID: ${evidence.id}")
-                appendLine("   Hash: ${evidence.contentHash.take(32)}...")
+            case.evidence.sortedBy { it.capturedAt }.forEachIndexed { index, evidence ->
+                appendLine("${index + 1}. ${evidence.description}")
+                appendLine("   Collected: ${dateFormat.format(Date(evidence.capturedAt))}")
+                evidence.metadata.collectorId?.let {
+                    appendLine("   Collector: $it")
+                }
                 appendLine()
             }
             
-            // Case sealing
-            if (forensicCase.status == CaseStatus.SEALED || 
-                forensicCase.status == CaseStatus.REPORTED) {
-                appendLine("${forensicCase.evidence.size + 2}. CASE SEALED")
-                appendLine("   Time: ${dateFormat.format(Date(forensicCase.modifiedAt))}")
-                appendLine("   Action: Case cryptographically sealed")
-                appendLine("   Integrity Hash: ${forensicCase.integrityHash?.take(32) ?: "N/A"}...")
-                appendLine()
-            }
-            
-            appendLine("CUSTODY CERTIFICATION:")
-            appendLine("I certify that the evidence described herein has been handled")
-            appendLine("in accordance with the Verum Omnis Constitutional Governance")
-            appendLine("Framework and forensic best practices.")
+            appendLine("All evidence has been cryptographically sealed using SHA-512")
+            appendLine("hash standard with HMAC-SHA512 tamper detection.")
         }
+        
+        return NarrativeSection(
+            title = "Chain of Custody",
+            content = content,
+            type = SectionType.CUSTODY
+        )
     }
 
-    /**
-     * Generate integrity statement
-     */
-    private fun generateIntegrityStatement(forensicCase: ForensicCase): String {
-        return buildString {
-            appendLine("INTEGRITY STATEMENT")
-            appendLine("───────────────────")
+    private fun generateIntegritySection(case: ForensicCase): NarrativeSection {
+        val content = buildString {
+            appendLine("INTEGRITY VERIFICATION")
+            appendLine("=" .repeat(50))
             appendLine()
-            appendLine("CRYPTOGRAPHIC STANDARDS:")
-            appendLine("  Hash Algorithm: ${VerumOmnisApplication.HASH_STANDARD}")
-            appendLine("  Seal Algorithm: HMAC-SHA512")
-            appendLine("  PDF Standard: ${VerumOmnisApplication.PDF_STANDARD}")
+            appendLine("Hash Standard: SHA-512")
+            appendLine("Seal Algorithm: HMAC-SHA512")
+            appendLine("Tamper Detection: ENABLED")
             appendLine()
-            appendLine("CASE INTEGRITY:")
-            forensicCase.integrityHash?.let {
-                appendLine("  Case Integrity Hash:")
-                appendLine("    ${it.take(64)}")
-                appendLine("    ${it.drop(64)}")
-            } ?: appendLine("  Case not yet sealed")
+            appendLine("All evidence items have been cryptographically sealed")
+            appendLine("at the time of collection. Any modification to the")
+            appendLine("evidence after sealing will be detectable through")
+            appendLine("hash verification.")
             appendLine()
-            appendLine("TAMPER DETECTION:")
-            appendLine("  If any evidence has been modified after sealing, the integrity")
-            appendLine("  verification will fail. Compare the hashes above with the")
-            appendLine("  independently calculated values to verify authenticity.")
+            appendLine("VERUM OMNIS CONSTITUTIONAL GOVERNANCE")
+            appendLine("This report adheres to the following principles:")
+            appendLine("  - Truth: Factual accuracy and verifiable evidence")
+            appendLine("  - Fairness: Protection of vulnerable parties")
+            appendLine("  - Human Rights: Dignity, equality, and agency")
+            appendLine("  - Integrity: No manipulation or bias")
         }
+        
+        return NarrativeSection(
+            title = "Integrity Verification",
+            content = content,
+            type = SectionType.VERIFICATION
+        )
     }
+}
 
-    /**
-     * Generate verification instructions
-     */
-    private fun generateVerificationInstructions(forensicCase: ForensicCase): String {
-        return buildString {
-            appendLine("VERIFICATION INSTRUCTIONS")
-            appendLine("─────────────────────────")
-            appendLine()
-            appendLine("To independently verify this forensic report:")
-            appendLine()
-            appendLine("1. VERIFY APK INTEGRITY")
-            appendLine("   - Calculate SHA-512 hash of the Verum Omnis APK")
-            appendLine("   - Compare with the APK hash in the QR code")
-            appendLine()
-            appendLine("2. VERIFY EVIDENCE HASHES")
-            appendLine("   - For each evidence item, recalculate the SHA-512 hash")
-            appendLine("   - Compare with the content hash listed above")
-            appendLine()
-            appendLine("3. VERIFY CASE INTEGRITY")
-            appendLine("   - Reconstruct the case data structure")
-            appendLine("   - Calculate SHA-512 hash of combined evidence")
-            appendLine("   - Compare with case integrity hash")
-            appendLine()
-            appendLine("4. SCAN QR CODE")
-            appendLine("   - QR code contains report metadata and verification data")
-            appendLine("   - Use any standard QR scanner to decode")
-            appendLine()
-            appendLine("WARNING:")
-            appendLine("If any hash does not match, the evidence may have been")
-            appendLine("tampered with and should be treated as compromised.")
-        }
+/**
+ * Represents a complete forensic narrative
+ */
+data class ForensicNarrative(
+    val caseNumber: String,
+    val generatedAt: Long,
+    val sections: List<NarrativeSection>
+) {
+    fun toFullText(): String {
+        return sections.joinToString("\n\n") { it.content }
     }
+}
 
-    /**
-     * Generate report footer
-     */
-    private fun generateFooter(): String {
-        return buildString {
-            appendLine("═══════════════════════════════════════════════════════════════════")
-            appendLine("                         END OF REPORT")
-            appendLine("═══════════════════════════════════════════════════════════════════")
-            appendLine()
-            appendLine("Generated by: Verum Omnis Forensic Engine v${VerumOmnisApplication.VERSION}")
-            appendLine("Creator: Liam Highcock")
-            appendLine("© ${Calendar.getInstance().get(Calendar.YEAR)} Verum Global Foundation")
-            appendLine()
-            appendLine("This report was generated offline with no external data transmission.")
-            appendLine("AI FORENSICS FOR TRUTH")
-        }
-    }
+/**
+ * A section of the forensic narrative
+ */
+data class NarrativeSection(
+    val title: String,
+    val content: String,
+    val type: SectionType
+)
 
-    /**
-     * Format file size for display
-     */
-    private fun formatFileSize(bytes: Long): String {
-        return when {
-            bytes < 1024 -> "$bytes B"
-            bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-            bytes < 1024 * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
-            else -> "${bytes / (1024 * 1024 * 1024)} GB"
-        }
-    }
+/**
+ * Types of narrative sections
+ */
+enum class SectionType {
+    HEADER,
+    SUMMARY,
+    EVIDENCE,
+    CUSTODY,
+    VERIFICATION
 }

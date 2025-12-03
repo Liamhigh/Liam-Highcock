@@ -1,69 +1,45 @@
 package org.verumomnis.forensic.ui
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.verumomnis.forensic.R
-import org.verumomnis.forensic.core.*
+import org.verumomnis.forensic.core.EvidenceType
+import org.verumomnis.forensic.core.ForensicEngine
 import org.verumomnis.forensic.databinding.ActivityScannerBinding
-import org.verumomnis.forensic.location.ForensicLocationService
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.util.Locale
 
 /**
- * Scanner Activity - Evidence Capture
+ * Scanner Activity - Document/Photo Capture
  * 
- * Camera interface for capturing document and photo evidence.
- * Automatically captures GPS location when evidence is captured.
+ * Uses CameraX for evidence capture with GPS tagging
  * 
  * @author Liam Highcock
- * @version 1.0.0
  */
 class ScannerActivity : AppCompatActivity() {
 
     companion object {
-        const val EXTRA_CASE_ID = "caseId"
-        const val EXTRA_EVIDENCE_TYPE = "evidenceType"
-        const val RESULT_EVIDENCE_ID = "evidenceId"
+        const val EXTRA_CASE_ID = "extra_case_id"
+        private const val TAG = "ScannerActivity"
     }
 
     private lateinit var binding: ActivityScannerBinding
     private lateinit var forensicEngine: ForensicEngine
-    private lateinit var locationService: ForensicLocationService
-    private lateinit var cameraExecutor: ExecutorService
-    
     private var imageCapture: ImageCapture? = null
     private var caseId: String? = null
-    private var evidenceType: EvidenceType = EvidenceType.DOCUMENT
-    private var currentLocation: ForensicLocation? = null
-
-    // Camera permission
-    private val cameraPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            startCamera()
-        } else {
-            Toast.makeText(this, "Camera permission required", Toast.LENGTH_SHORT).show()
-            finish()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,64 +47,33 @@ class ScannerActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         caseId = intent.getStringExtra(EXTRA_CASE_ID)
-        evidenceType = intent.getSerializableExtra(EXTRA_EVIDENCE_TYPE) as? EvidenceType 
-            ?: EvidenceType.DOCUMENT
-
         if (caseId == null) {
-            Toast.makeText(this, "No case selected", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Invalid case", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
-        initializeServices()
-        setupUI()
-        checkCameraPermission()
-        captureLocation()
-    }
-
-    private fun initializeServices() {
         forensicEngine = ForensicEngine(this)
-        locationService = ForensicLocationService(this)
-        cameraExecutor = Executors.newSingleThreadExecutor()
+
+        setupToolbar()
+        checkCameraPermission()
+        setupCaptureButton()
     }
 
-    private fun setupUI() {
-        binding.tvCaseId.text = "Case: $caseId"
-        binding.tvEvidenceType.text = "Capturing: ${evidenceType.name}"
-
-        binding.btnCapture.setOnClickListener {
-            captureImage()
-        }
-
-        binding.btnCancel.setOnClickListener {
-            setResult(RESULT_CANCELED)
-            finish()
-        }
-
-        binding.btnSwitchType.setOnClickListener {
-            toggleEvidenceType()
-        }
-    }
-
-    private fun toggleEvidenceType() {
-        evidenceType = when (evidenceType) {
-            EvidenceType.DOCUMENT -> EvidenceType.PHOTO
-            EvidenceType.PHOTO -> EvidenceType.DOCUMENT
-            else -> EvidenceType.DOCUMENT
-        }
-        binding.tvEvidenceType.text = "Capturing: ${evidenceType.name}"
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = "Capture Evidence"
+        binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
     }
 
     private fun checkCameraPermission() {
-        when {
-            ContextCompat.checkSelfPermission(
-                this, Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                startCamera()
-            }
-            else -> {
-                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) 
+            == PackageManager.PERMISSION_GRANTED) {
+            startCamera()
+        } else {
+            Toast.makeText(this, "Camera permission required", Toast.LENGTH_SHORT).show()
+            finish()
         }
     }
 
@@ -138,11 +83,9 @@ class ScannerActivity : AppCompatActivity() {
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
 
-            val preview = Preview.Builder()
-                .build()
-                .also {
-                    it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
-                }
+            val preview = Preview.Builder().build().also {
+                it.surfaceProvider = binding.viewFinder.surfaceProvider
+            }
 
             imageCapture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
@@ -156,130 +99,81 @@ class ScannerActivity : AppCompatActivity() {
                     this, cameraSelector, preview, imageCapture
                 )
             } catch (e: Exception) {
-                Toast.makeText(this, "Camera initialization failed", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "Use case binding failed", e)
             }
+
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun captureLocation() {
-        if (!locationService.hasLocationPermission()) return
-
-        lifecycleScope.launch {
-            currentLocation = locationService.getCurrentLocation()
-            currentLocation?.let { loc ->
-                binding.tvLocation.text = locationService.formatLocation(loc)
-            } ?: run {
-                binding.tvLocation.text = "Location unavailable"
-            }
+    private fun setupCaptureButton() {
+        binding.btnCapture.setOnClickListener {
+            captureImage()
         }
     }
 
     private fun captureImage() {
         val imageCapture = imageCapture ?: return
 
+        // Create output file
+        val photoFile = File(
+            filesDir,
+            "evidence_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis())}.jpg"
+        )
+
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+
         binding.btnCapture.isEnabled = false
-        binding.progressBar.visibility = android.view.View.VISIBLE
-
-        // Create timestamped file
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val filename = "EVIDENCE_${timestamp}.jpg"
-        
-        val tempFile = File(cacheDir, filename)
-
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(tempFile).build()
+        binding.textStatus.text = "Capturing..."
 
         imageCapture.takePicture(
             outputOptions,
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    processAndSaveEvidence(tempFile, filename)
+                    saveEvidenceWithLocation(photoFile)
                 }
 
-                override fun onError(exception: ImageCaptureException) {
+                override fun onError(exc: ImageCaptureException) {
+                    Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
                     binding.btnCapture.isEnabled = true
-                    binding.progressBar.visibility = android.view.View.GONE
-                    Toast.makeText(
-                        this@ScannerActivity,
-                        "Capture failed: ${exception.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    binding.textStatus.text = "Capture failed"
+                    Toast.makeText(this@ScannerActivity, "Capture failed", Toast.LENGTH_SHORT).show()
                 }
             }
         )
     }
 
-    private fun processAndSaveEvidence(imageFile: File, filename: String) {
+    private fun saveEvidenceWithLocation(photoFile: File) {
         lifecycleScope.launch {
-            try {
-                // All heavy processing on IO thread
-                val result = withContext(Dispatchers.IO) {
-                    val imageBytes = imageFile.readBytes()
-                    
-                    // Extract EXIF metadata from the image
-                    val metadataExtractor = org.verumomnis.forensic.metadata.EvidenceMetadataExtractor(this@ScannerActivity)
-                    val imageMetadata = metadataExtractor.extractImageMetadata(imageFile)
-                    
-                    // Prefer EXIF location if available and current location is not
-                    val finalLocation = currentLocation ?: imageMetadata.location
-                    
-                    // Add evidence (includes SHA-512 hashing)
-                    val evidence = forensicEngine.addEvidence(
-                        caseId = caseId!!,
-                        type = evidenceType,
-                        content = imageBytes,
-                        mimeType = "image/jpeg",
-                        filename = filename,
-                        location = finalLocation
-                    )
-                    
-                    // Clean up temp file
-                    imageFile.delete()
-                    
-                    if (evidence != null) {
-                        // Seal immediately (HMAC-SHA512)
-                        forensicEngine.sealEvidence(caseId!!, evidence.id)
-                    }
-                    
-                    evidence
-                }
+            binding.textStatus.text = "Saving with GPS location..."
 
-                if (result != null) {
-                    Toast.makeText(
-                        this@ScannerActivity,
-                        "Evidence captured and sealed: ${result.id}",
-                        Toast.LENGTH_LONG
-                    ).show()
+            val evidence = forensicEngine.addEvidence(
+                caseId = caseId!!,
+                type = EvidenceType.PHOTO,
+                description = "Photo evidence captured at ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(System.currentTimeMillis())}",
+                content = photoFile.readBytes(),
+                filePath = photoFile.absolutePath
+            )
 
-                    // Return result
-                    val resultIntent = Intent().apply {
-                        putExtra(RESULT_EVIDENCE_ID, result.id)
-                        putExtra(EXTRA_CASE_ID, caseId)
-                    }
-                    setResult(RESULT_OK, resultIntent)
-                    finish()
+            if (evidence != null) {
+                val locationInfo = if (evidence.latitude != null && evidence.longitude != null) {
+                    "GPS: %.4f, %.4f".format(evidence.latitude, evidence.longitude)
                 } else {
-                    Toast.makeText(
-                        this@ScannerActivity,
-                        "Failed to add evidence",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    "No GPS available"
                 }
-            } catch (e: Exception) {
+                
                 Toast.makeText(
                     this@ScannerActivity,
-                    "Error: ${e.message}",
+                    "Evidence captured\n$locationInfo",
                     Toast.LENGTH_LONG
                 ).show()
-            } finally {
+                
+                finish()
+            } else {
                 binding.btnCapture.isEnabled = true
-                binding.progressBar.visibility = android.view.View.GONE
+                binding.textStatus.text = "Ready to capture"
+                Toast.makeText(this@ScannerActivity, "Failed to save evidence", Toast.LENGTH_SHORT).show()
             }
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        cameraExecutor.shutdown()
     }
 }

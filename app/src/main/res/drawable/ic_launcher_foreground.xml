@@ -4,8 +4,20 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- V letter shape centered in the safe zone (72dp centered in 108dp) -->
+    
+    <!-- SAPS Badge background circle -->
     <path
-        android:fillColor="#1E88E5"
-        android:pathData="M36,38 L54,72 L72,38 L63,38 L54,56 L45,38 Z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0"/>
+    
+    <!-- Shield shape for forensic/law enforcement -->
+    <path
+        android:fillColor="#003366"
+        android:pathData="M54,30 L70,38 L70,58 Q70,68 54,76 Q38,68 38,58 L38,38 Z"/>
+    
+    <!-- Letter "F" for Forensic -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,42 L62,42 L62,46 L50,46 L50,52 L58,52 L58,56 L50,56 L50,68 L46,68 Z"/>
+    
 </vector>

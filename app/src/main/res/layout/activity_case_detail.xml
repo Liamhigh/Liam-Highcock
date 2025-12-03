@@ -1,73 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout 
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F1E36">
+    android:fitsSystemWindows="true"
+    tools:context=".ui.CaseDetailActivity">
 
-    <!-- Header -->
-    <LinearLayout
-        android:id="@+id/header"
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="#1A2744"
-        app:layout_constraintTop_toTopOf="parent">
+        android:fitsSystemWindows="true">
 
-        <ImageButton
-            android:id="@+id/btnBack"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_revert"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Back" />
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/saps_blue"
+            app:titleTextColor="@android:color/white"
+            app:navigationIconTint="@android:color/white" />
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginStart="16dp">
+    </com.google.android.material.appbar.AppBarLayout>
 
-            <TextView
-                android:id="@+id/tvCaseName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Case Name"
-                android:textSize="20sp"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvCaseId"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="CASE-XXXXXXXX"
-                android:textSize="12sp"
-                android:textColor="#1E88E5" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="OPEN"
-            android:textSize="12sp"
-            android:textColor="#4CAF50"
-            android:textStyle="bold"
-            android:background="#1A3A2A"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp" />
-    </LinearLayout>
-
-    <!-- Content -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/header"
-        app:layout_constraintBottom_toTopOf="@id/actionsBar">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -76,12 +35,12 @@
             android:padding="16dp">
 
             <!-- Case Info Card -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="#1A2744"
-                app:cardCornerRadius="8dp"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="16dp"
+                app:cardElevation="4dp"
+                app:cardCornerRadius="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -90,66 +49,56 @@
                     android:padding="16dp">
 
                     <TextView
-                        android:id="@+id/tvDescription"
+                        android:id="@+id/textCaseDescription"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Case description"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/textCaseStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
                         android:textSize="14sp"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="@color/saps_blue" />
 
                     <TextView
-                        android:id="@+id/tvCreated"
+                        android:id="@+id/textEvidenceCount"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Created: 2024-01-01"
-                        android:textSize="12sp"
-                        android:textColor="#AAAAAA"
-                        android:layout_marginTop="8dp" />
+                        android:layout_marginTop="4dp"
+                        android:textSize="14sp"
+                        android:textColor="@android:color/darker_gray" />
 
-                    <TextView
-                        android:id="@+id/tvModified"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Modified: 2024-01-01"
-                        android:textSize="12sp"
-                        android:textColor="#AAAAAA"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/tvIntegrityHash"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Integrity: Not sealed"
-                        android:textSize="10sp"
-                        android:textColor="#888888"
-                        android:fontFamily="monospace"
-                        android:layout_marginTop="8dp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
 
-            <!-- Add Evidence Section -->
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Action Buttons -->
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ADD EVIDENCE"
+                android:text="@string/add_evidence"
                 android:textSize="14sp"
-                android:textColor="#1E88E5"
                 android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:textColor="@color/saps_blue"
+                android:layout_marginBottom="8dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="16dp">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddDocument"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📄 Scan"
-                    app:backgroundTint="#1E88E5" />
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/document"
+                    app:icon="@android:drawable/ic_menu_edit"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddPhoto"
@@ -157,143 +106,75 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginHorizontal="4dp"
-                    android:text="📷 Photo"
-                    android:textSize="12sp"
-                    app:backgroundTint="#1E88E5" />
+                    android:text="@string/photo"
+                    app:icon="@android:drawable/ic_menu_camera"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddNote"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📝 Note"
-                    android:textSize="12sp"
-                    app:backgroundTint="#1E88E5" />
+                    android:layout_marginStart="4dp"
+                    android:text="@string/note"
+                    app:icon="@android:drawable/ic_menu_agenda"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+
             </LinearLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnImportFile"
+            <!-- Evidence List Header -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/evidence_list"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/saps_blue"
+                android:layout_marginBottom="8dp" />
+
+            <!-- No Evidence Message -->
+            <TextView
+                android:id="@+id/textNoEvidence"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📂 Import File from Device"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:textColor="#FFFFFF"
-                android:layout_marginBottom="16dp" />
-
-            <!-- Evidence List Section -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="EVIDENCE"
-                    android:textSize="14sp"
-                    android:textColor="#1E88E5"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvEvidenceCount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0 Item(s)"
-                    android:textSize="12sp"
-                    android:textColor="#888888" />
-            </LinearLayout>
-
-            <!-- Evidence RecyclerView -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvEvidence"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false" />
-
-            <!-- Empty Evidence State -->
-            <LinearLayout
-                android:id="@+id/emptyEvidence"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:layout_marginTop="24dp"
                 android:gravity="center"
-                android:padding="32dp"
-                android:visibility="gone">
+                android:text="@string/no_evidence"
+                android:textSize="14sp"
+                android:textColor="@android:color/darker_gray"
+                android:visibility="gone" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📁"
-                    android:textSize="48sp" />
+            <!-- Evidence List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewEvidence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                tools:listitem="@layout/item_evidence" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="No evidence yet"
-                    android:textSize="16sp"
-                    android:textColor="#FFFFFF"
-                    android:layout_marginTop="8dp" />
+            <!-- Generate Report Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGenerateReport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/generate_report"
+                android:textColor="@android:color/white"
+                app:icon="@android:drawable/ic_menu_save"
+                app:iconTint="@android:color/white"
+                app:backgroundTint="@color/saps_blue" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Add documents, photos, or notes"
-                    android:textSize="12sp"
-                    android:textColor="#888888"
-                    android:layout_marginTop="4dp" />
-            </LinearLayout>
+            <!-- Progress Bar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
 
         </LinearLayout>
+
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Actions Bar -->
-    <LinearLayout
-        android:id="@+id/actionsBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="#1A2744"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnRunAnalysis"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Analyze"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:textColor="#FFFFFF" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSealCase"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginHorizontal="8dp"
-            android:text="Seal Case"
-            app:backgroundTint="#FF9800" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnGenerateReport"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Report"
-            app:backgroundTint="#4CAF50" />
-    </LinearLayout>
-
-    <!-- Progress Bar -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,58 +1,156 @@
-# Verum Omnis Forensic Engine
+# SAPS Forensic Evidence Engine
 
-![Verum Omnis Logo](main-logo.png)
+<p align="center">
+  <img src="main-logo.png" alt="SAPS Forensic Engine Logo" width="200"/>
+</p>
 
-**Offline Android Forensic Engine with Cryptographic Sealing**
+[![Build SAPS Forensic APK](https://github.com/Liamhigh/Liam-Highcock/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Liamhigh/Liam-Highcock/actions/workflows/build-apk.yml)
 
-An Android application for collecting, sealing, and reporting forensic evidence in accordance with the Verum Omnis Constitutional Governance Layer.
+**A free forensic evidence collection application for the South African Police Service (SAPS)**
 
-## 🎯 Features
+## 🔒 Overview
 
-- 📸 **Document Capture** - Camera-based evidence collection
-- 🔐 **Cryptographic Sealing** - SHA-512 hashing with HMAC-SHA512 for tamper detection
-- 📍 **GPS Location Capture** - Automatic geolocation of evidence at collection time
-- 📄 **AI-Readable PDF Reports** - Structured forensic narratives following legal admissibility standards
-- 🔒 **Offline-First Design** - No cloud logging, no telemetry, airgap ready
-- 📊 **B1-B9 Leveler Compliance** - Complete contradiction detection and integrity scoring
+The SAPS Forensic Evidence Engine is a mobile application designed for law enforcement officers to collect, seal, and document forensic evidence. Built with constitutional governance principles, this app ensures evidence integrity and chain of custody documentation.
 
-## 🏛️ Constitutional Governance
+## ✨ Features
 
-This application operates under the **Verum Omnis Constitution Mode**, which enforces:
+### For Law Enforcement Officers
 
-### Core Principles
+- **📱 Easy Evidence Collection** - Simple interface designed for field use
+- **📍 GPS Location Tagging** - Automatic GPS coordinates for all evidence
+- **🔐 Cryptographic Sealing** - SHA-512 hashing for tamper-proof evidence
+- **📄 PDF Report Generation** - Court-admissible forensic reports
+- **📷 Photo Evidence Capture** - Built-in camera for document and scene capture
+- **📝 Text Notes** - Add observations and notes to cases
+- **🔗 Chain of Custody** - Full documentation of evidence handling
 
-| Principle | Description |
-|-----------|-------------|
-| **Truth** | Factual accuracy and verifiable evidence |
-| **Fairness** | Protection of vulnerable parties |
-| **Human Rights** | Dignity, equality, and agency |
-| **Non-Extraction** | No sensitive data transmission |
-| **Human Authority** | AI assists, never overrides |
-| **Integrity** | No manipulation or bias |
-| **Independence** | No external influence on outputs |
+### Security Features
+
+- **Offline First** - Works without internet connection
+- **No Cloud Upload** - All data stays on device
+- **No Telemetry** - Zero tracking or analytics
+- **Tamper Detection** - Cryptographic verification of all evidence
+- **Airgap Ready** - Can operate in secure environments
+
+## 📲 Installation
+
+### For SAPS Deployment
+
+1. **Download the APK**
+   - Go to [Releases](https://github.com/Liamhigh/Liam-Highcock/releases)
+   - Download the latest `SAPS-Forensic-Release.apk`
+
+2. **Install on Android Device**
+   - Enable "Install from Unknown Sources" in Settings
+   - Open the APK file
+   - Tap "Install"
+   - Grant required permissions (Camera, Location)
+
+### Requirements
+
+- Android 8.0 (Oreo) or higher
+- Camera for evidence capture
+- GPS for location tagging
+
+## 🚀 Quick Start Guide
+
+### Creating a Case
+
+1. Open the app
+2. Tap the **"+ New Case"** button
+3. Enter the case number (e.g., SAPS-2024-001)
+4. Enter a description of the case
+5. Tap **"Create"**
+
+### Adding Evidence
+
+1. Open an existing case
+2. Choose evidence type:
+   - **Document** - For document descriptions
+   - **Photo** - For capturing photos
+   - **Note** - For text observations
+3. GPS location is automatically recorded
+
+### Generating a Report
+
+1. Open a case with evidence
+2. Tap **"Generate Forensic Report"**
+3. Wait for PDF generation
+4. View, share, or save the report
+
+## 📋 Usage Workflow
+
+```
+┌─────────────────┐
+│  Create Case    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Collect Evidence│
+│ - Photos        │
+│ - Documents     │
+│ - Notes         │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Generate Report │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Share/Submit   │
+└─────────────────┘
+```
+
+## 🏗️ Technical Architecture
+
+### Project Structure
+
+```
+app/src/main/java/org/verumomnis/forensic/
+├── core/                    # Core forensic engine
+│   ├── ForensicEngine.kt    # Main engine
+│   ├── ForensicModels.kt    # Data models
+│   └── VerumOmnisApplication.kt
+├── crypto/                  # Cryptographic sealing
+│   └── CryptographicSealingEngine.kt
+├── location/               # GPS location services
+│   └── ForensicLocationService.kt
+├── pdf/                    # PDF report generation
+│   └── ForensicPdfGenerator.kt
+├── report/                 # Narrative generation
+│   └── ForensicNarrativeGenerator.kt
+└── ui/                     # User interface
+    ├── MainActivity.kt
+    ├── CaseDetailActivity.kt
+    ├── ScannerActivity.kt
+    └── ReportViewerActivity.kt
+```
 
 ### Forensic Standards
 
-| Standard | Value |
-|----------|-------|
-| Hash Standard | SHA-512 |
-| PDF Standard | PDF 1.7 |
-| Watermark | VERUM OMNIS FORENSIC SEAL |
-| QR Code Inclusion | Yes |
+| Standard | Implementation |
+|----------|---------------|
+| Hash Algorithm | SHA-512 |
+| Seal Algorithm | HMAC-SHA512 |
+| PDF Version | 1.7 |
 | Tamper Detection | Mandatory |
-| Admissibility Standard | Legal-grade |
 
-### Security
+## 🔐 Verum Omnis Constitutional Governance
 
-| Feature | Status |
-|---------|--------|
-| Offline First | ✅ True |
-| Stateless | ✅ True |
-| No Cloud Logging | ✅ True |
-| No Telemetry | ✅ True |
-| Airgap Ready | ✅ True |
+This application operates under constitutional governance principles:
 
-## 🚀 Building
+1. **Truth** - Factual accuracy and verifiable evidence
+2. **Fairness** - Protection of vulnerable parties
+3. **Human Rights** - Dignity, equality, and agency
+4. **Non-Extraction** - No sensitive data transmission
+5. **Human Authority** - AI assists, never overrides
+6. **Integrity** - No manipulation or bias
+7. **Independence** - No external influence on outputs
+
+## 🛠️ Building from Source
 
 ### Prerequisites
 
@@ -60,191 +158,58 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 - JDK 17
 - Android SDK 34
 
-### Build Debug APK
+### Build Commands
 
 ```bash
+# Build Debug APK
 ./gradlew assembleDebug
-```
 
-### Build Release APK
-
-```bash
+# Build Release APK
 ./gradlew assembleRelease
+
+# Run Tests
+./gradlew test
 ```
 
-The APK will be output to `app/build/outputs/apk/`
+Output APKs will be in `app/build/outputs/apk/`
 
-### CI/CD Signed Release Builds
+## 📦 Deployment Options
 
-The GitHub Actions workflow automatically builds and signs release APKs. To enable signed builds, configure the following repository secrets:
+### Option 1: Direct APK Distribution
 
-| Secret | Description |
-|--------|-------------|
-| `KEYSTORE_BASE64` | Base64-encoded keystore file |
-| `KEYSTORE_PASSWORD` | Password for the keystore |
-| `KEY_ALIAS` | Alias of the signing key |
-| `KEY_PASSWORD` | Password for the signing key |
+1. Download APK from GitHub Releases
+2. Distribute via secure file transfer
+3. Officers install on their devices
 
-To generate the base64-encoded keystore:
-```bash
-base64 -i your-keystore.jks -o keystore-base64.txt
-```
+### Option 2: MDM (Mobile Device Management)
 
-Copy the contents of `keystore-base64.txt` to the `KEYSTORE_BASE64` secret.
+1. Use organization's MDM solution
+2. Push APK to enrolled devices
+3. Configure permissions centrally
 
-## 📱 Usage
+### Option 3: Private App Store
 
-### Police Evidence Workflow
+1. Host APK on internal server
+2. Officers download from approved source
+3. Automatic updates via internal distribution
 
-The app follows a structured workflow for forensic evidence collection:
+## 📞 Support
 
-```
-1. CREATE CASE → 2. ADD EVIDENCE → 3. ANALYZE → 4. SEAL → 5. REPORT → 6. SAVE/SHARE → 7. VIEW
-```
+For technical support or questions:
+- Open an issue on GitHub
+- Contact the development team
 
-#### Step-by-Step Guide
-
-1. **Create a Case** - Tap "+ New Case" and enter case name and description
-2. **Add Evidence** - Choose one of the intake methods:
-   - 📄 **Scan Document** - Use camera to capture document
-   - 📷 **Take Photo** - Capture photo evidence
-   - 📝 **Add Note** - Add text observations
-   - 📂 **Import File** - Pick existing files from device (PDF, images, documents)
-3. **Run Analysis** - Tap "Analyze" to run B1-B9 Leveler Engine analysis
-4. **Seal Case** - Tap "Seal Case" to lock evidence and generate integrity hash
-5. **Generate Report** - Tap "Report" to create the forensic PDF
-6. **Save/Share** - Use "Save" or "Share" buttons to export the sealed report
-7. **Verify** - Tap "Verify" to check case integrity hashes
-
-### Evidence Types
-
-- 📄 Documents (scanned or imported)
-- 📷 Photos (captured or imported)
-- 📝 Text (notes and observations)
-- 📂 Files (PDF, Word, images from device)
-- 🎤 Audio (coming soon)
-- 🎬 Video (coming soon)
-
-## 🔍 B1-B9 Leveler Engine
-
-The Leveler Engine provides comprehensive evidence analysis:
-
-| Code | Feature | Description |
-|------|---------|-------------|
-| B1 | Event Chronology | Timeline reconstruction from evidence |
-| B2 | Contradiction Detection | Statement and evidence conflict identification |
-| B3 | Evidence Gap Analysis | Missing evidence detection |
-| B4 | Timeline Manipulation | Backdating and edit detection |
-| B5 | Behavioral Patterns | Evasion, gaslighting, concealment detection |
-| B6 | Financial Correlation | Transaction vs statement verification |
-| B7 | Communication Analysis | Response patterns and deletions |
-| B8 | Jurisdictional Compliance | UAE, UK, EU, US law checking |
-| B9 | Integrity Scoring | 0-100 score with breakdown |
-
-## 📁 Project Structure
-
-```
-app/src/main/java/org/verumomnis/forensic/
-├── core/                    # Core forensic engine
-│   ├── ForensicEngine.kt
-│   ├── ForensicEvidence.kt
-│   └── VerumOmnisApplication.kt
-├── crypto/                  # Cryptographic sealing
-│   └── CryptographicSealingEngine.kt
-├── leveler/                 # B1-B9 Leveler Engine
-│   └── LevelerEngine.kt
-├── location/                # GPS location services
-│   └── ForensicLocationService.kt
-├── metadata/                # EXIF/metadata extraction
-│   └── EvidenceMetadataExtractor.kt
-├── pdf/                     # PDF report generation
-│   └── ForensicPdfGenerator.kt
-├── report/                  # Narrative generation
-│   └── ForensicNarrativeGenerator.kt
-└── ui/                      # User interface
-    ├── MainActivity.kt
-    ├── ScannerActivity.kt
-    ├── CaseDetailActivity.kt
-    ├── FileIntakeActivity.kt
-    └── ReportViewerActivity.kt
-```
-
-## 🛡️ Security Considerations
-
-- All evidence is cryptographically sealed at capture time
-- SHA-512 hashes ensure content integrity verification
-- HMAC-SHA512 provides tamper-proof sealing
-- No data is transmitted to external servers
-- All processing happens locally on device
-- APK signature is included in reports for chain of trust
-
-## 📋 Verification
-
-Each forensic report includes:
-
-1. **QR Code** - Contains report metadata and verification hashes
-2. **APK Hash** - SHA-512 of the signing certificate
-3. **Evidence Hashes** - Individual SHA-512 for each evidence item
-4. **Case Integrity Hash** - Combined hash of all evidence
-5. **Seal Hashes** - HMAC-SHA512 tamper-proof seals
-
-## 🧪 End-to-End Testing
-
-### Testing the App Flow
-
-1. **Install the APK** on your Android device
-2. **Launch the app** - Verify "Constitutional Governance: ACTIVE" is displayed
-3. **Create a Test Case**:
-   - Tap "+ New Case"
-   - Enter name: "Test Evidence Case"
-   - Enter description: "Testing forensic workflow"
-   - Tap "Create"
-4. **Add Evidence** (test all methods):
-   - Tap case to open details
-   - Tap "📄 Scan" → capture a document → verify "Evidence captured and sealed" message
-   - Tap "📷 Photo" → capture a photo → verify sealing
-   - Tap "📝 Note" → enter text → verify sealing
-   - Tap "📂 Import File" → pick a file → verify sealing
-5. **Run Analysis**:
-   - Tap "Analyze" button
-   - Verify B1-B9 analysis results dialog appears
-   - Check Integrity Score is shown
-6. **Seal Case**:
-   - Tap "Seal Case" → confirm
-   - Verify status changes to "SEALED"
-   - Verify add evidence buttons are disabled
-7. **Generate Report**:
-   - Tap "Report"
-   - Verify progress indicator appears
-   - Verify Report Viewer opens with all data
-8. **Save Report**:
-   - Tap "Save"
-   - Verify file saved message with path
-9. **Share Report**:
-   - Tap "Share"
-   - Verify share sheet appears with PDF attachment
-10. **Verify Integrity**:
-    - Tap "Verify"
-    - Verify "INTEGRITY VERIFIED" message appears
-
-### Verifying Hashes
-
-To independently verify evidence integrity:
-
-1. **Export the report PDF** from the app
-2. **Note the Content Hash** for each evidence item in the report
-3. **Recalculate SHA-512** of original evidence content
-4. **Compare hashes** - they must match exactly
-5. **Verify Case Integrity Hash** matches the combined evidence chain
-
-## 📜 License
+## 📄 License
 
 Copyright © 2024 Verum Global Foundation
 
-## 👤 Creator
+**Creator**: Liam Highcock
 
-**Liam Highcock**
+This application is provided free of charge to the South African Police Service for use in lawful forensic evidence collection.
 
 ---
 
-*AI FORENSICS FOR TRUTH*
+<p align="center">
+  <b>VERUM OMNIS</b><br>
+  <i>Truth Above All</i>
+</p>

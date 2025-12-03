@@ -1,178 +1,183 @@
 package org.verumomnis.forensic.crypto
 
-import org.verumomnis.forensic.core.ForensicCase
-import org.verumomnis.forensic.core.ForensicEvidence
+import android.os.Build
+import android.util.Base64
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Cryptographic Sealing Engine
+ * Cryptographic Sealing Engine for Forensic Evidence
  * 
- * Provides cryptographic sealing for forensic evidence using:
- * - SHA-512 for content hashing
- * - HMAC-SHA512 for tamper-proof sealing
+ * Implements SHA-512 hashing with HMAC-SHA512 sealing for tamper detection
+ * as per Verum Omnis Forensic Standards.
  * 
- * All operations are stateless and offline-capable.
+ * Hash Standard: SHA-512
+ * Tamper Detection: Mandatory
+ * Admissibility Standard: Legal-grade
+ * 
+ * Security Note: For enhanced security in production, consider integrating with
+ * Android Keystore for hardware-backed key storage. The current implementation
+ * uses a device-derived key combined with application context for sealing.
  * 
  * @author Liam Highcock
- * @version 1.0.0
  */
 class CryptographicSealingEngine {
 
     companion object {
         private const val HASH_ALGORITHM = "SHA-512"
         private const val HMAC_ALGORITHM = "HmacSHA512"
-        private const val SEAL_PREFIX = "VERUM_OMNIS_SEAL_V1"
+        
+        /**
+         * Derives a device-specific key component for sealing.
+         * This is combined with evidence data to create unique seals.
+         * Note: For production use with highly sensitive data, consider using
+         * Android Keystore for hardware-backed key protection.
+         */
+        private fun deriveDeviceKey(): String {
+            // Combine multiple device attributes for key derivation
+            // This provides reasonable protection while maintaining portability
+            val deviceInfo = buildString {
+                append(Build.MANUFACTURER)
+                append(Build.MODEL)
+                append(Build.FINGERPRINT.hashCode())
+                append("VERUM_OMNIS_SAPS")
+            }
+            // Hash the device info to create a consistent key
+            val digest = MessageDigest.getInstance(HASH_ALGORITHM)
+            return Base64.encodeToString(
+                digest.digest(deviceInfo.toByteArray(Charsets.UTF_8)),
+                Base64.NO_WRAP
+            )
+        }
     }
 
-    private val secureRandom = SecureRandom()
+    // Lazily initialize the device key
+    private val deviceKey: String by lazy { deriveDeviceKey() }
 
     /**
-     * Calculate SHA-512 hash of data
+     * Calculates SHA-512 hash of the given data
+     * @param data The byte array to hash
+     * @return Hex-encoded hash string
      */
     fun calculateHash(data: ByteArray): String {
         val digest = MessageDigest.getInstance(HASH_ALGORITHM)
         val hashBytes = digest.digest(data)
-        return hashBytes.joinToString("") { "%02x".format(it) }
+        return hashBytes.toHexString()
     }
 
     /**
-     * Calculate SHA-512 hash of string
+     * Calculates SHA-512 hash of a string
+     * @param text The string to hash
+     * @return Hex-encoded hash string
      */
-    fun calculateHash(data: String): String {
-        return calculateHash(data.toByteArray(Charsets.UTF_8))
+    fun calculateHash(text: String): String {
+        return calculateHash(text.toByteArray(Charsets.UTF_8))
     }
 
     /**
-     * Seal evidence with HMAC-SHA512
+     * Creates an HMAC-SHA512 seal for evidence integrity verification
+     * @param data The data to seal
+     * @param key Optional custom key. If not provided, uses device-derived key.
+     * @return Base64-encoded seal
      */
-    fun sealEvidence(evidence: ForensicEvidence): String {
-        val sealData = buildSealData(evidence)
-        return generateHmacSeal(sealData)
+    fun createSeal(data: ByteArray, key: String? = null): String {
+        val sealKey = key ?: deviceKey
+        val secretKey = SecretKeySpec(sealKey.toByteArray(Charsets.UTF_8), HMAC_ALGORITHM)
+        val mac = Mac.getInstance(HMAC_ALGORITHM)
+        mac.init(secretKey)
+        val sealBytes = mac.doFinal(data)
+        return Base64.encodeToString(sealBytes, Base64.NO_WRAP)
     }
 
     /**
-     * Calculate case integrity hash
+     * Verifies an HMAC-SHA512 seal
+     * @param data The original data
+     * @param seal The seal to verify
+     * @param key Optional custom key. If not provided, uses device-derived key.
+     * @return True if seal is valid
      */
-    fun calculateCaseIntegrityHash(forensicCase: ForensicCase): String {
-        val caseData = buildCaseData(forensicCase)
-        return calculateHash(caseData)
+    fun verifySeal(data: ByteArray, seal: String, key: String? = null): Boolean {
+        val expectedSeal = createSeal(data, key)
+        return expectedSeal == seal
     }
 
     /**
-     * Verify evidence seal
+     * Creates a complete forensic seal combining content hash and timestamp
+     * @param content The evidence content
+     * @param timestamp The capture timestamp
+     * @param location Optional GPS coordinates
+     * @return ForensicSeal object with all verification data
      */
-    fun verifySeal(evidence: ForensicEvidence, providedSeal: String): Boolean {
-        if (!evidence.sealed || evidence.sealHash == null) {
+    fun createForensicSeal(
+        content: ByteArray,
+        timestamp: Long,
+        latitude: Double? = null,
+        longitude: Double? = null
+    ): ForensicSeal {
+        val contentHash = calculateHash(content)
+        
+        // Create metadata string for sealing
+        val metadata = buildString {
+            append("HASH:$contentHash")
+            append("|TIME:$timestamp")
+            latitude?.let { append("|LAT:$it") }
+            longitude?.let { append("|LON:$it") }
+        }
+        
+        val metadataHash = calculateHash(metadata)
+        val seal = createSeal((contentHash + metadataHash).toByteArray())
+        
+        return ForensicSeal(
+            contentHash = contentHash,
+            metadataHash = metadataHash,
+            seal = seal,
+            timestamp = timestamp,
+            latitude = latitude,
+            longitude = longitude
+        )
+    }
+
+    /**
+     * Verifies a complete forensic seal
+     * @param content The evidence content to verify
+     * @param forensicSeal The seal to verify against
+     * @return True if the content matches the seal
+     */
+    fun verifyForensicSeal(content: ByteArray, forensicSeal: ForensicSeal): Boolean {
+        val currentHash = calculateHash(content)
+        if (currentHash != forensicSeal.contentHash) {
             return false
         }
         
-        // Recalculate seal
-        val expectedSeal = sealEvidence(evidence.copy(sealed = false, sealHash = null))
+        val metadata = buildString {
+            append("HASH:${forensicSeal.contentHash}")
+            append("|TIME:${forensicSeal.timestamp}")
+            forensicSeal.latitude?.let { append("|LAT:$it") }
+            forensicSeal.longitude?.let { append("|LON:$it") }
+        }
         
-        // Compare seals
-        return expectedSeal == providedSeal
+        val metadataHash = calculateHash(metadata)
+        return metadataHash == forensicSeal.metadataHash
     }
 
     /**
-     * Verify content hash
+     * Extension function to convert ByteArray to hex string
      */
-    fun verifyContentHash(content: ByteArray, expectedHash: String): Boolean {
-        val calculatedHash = calculateHash(content)
-        return calculatedHash == expectedHash
-    }
-
-    /**
-     * Generate cryptographic salt
-     */
-    fun generateSalt(length: Int = 32): ByteArray {
-        val salt = ByteArray(length)
-        secureRandom.nextBytes(salt)
-        return salt
-    }
-
-    /**
-     * Generate timestamp-based nonce
-     */
-    fun generateNonce(): String {
-        val timestamp = System.currentTimeMillis()
-        val random = ByteArray(8)
-        secureRandom.nextBytes(random)
-        val randomHex = random.joinToString("") { "%02x".format(it) }
-        return "$timestamp-$randomHex"
-    }
-
-    // Private helper methods
-
-    private fun buildSealData(evidence: ForensicEvidence): String {
-        return StringBuilder().apply {
-            append(SEAL_PREFIX)
-            append("|")
-            append(evidence.id)
-            append("|")
-            append(evidence.type.name)
-            append("|")
-            append(evidence.contentHash)
-            append("|")
-            append(evidence.mimeType)
-            append("|")
-            append(evidence.timestamp)
-            append("|")
-            evidence.location?.let {
-                append("${it.latitude},${it.longitude},${it.accuracy}")
-            } ?: append("NO_LOCATION")
-            append("|")
-            append(evidence.metadata.fileSize)
-            append("|")
-            append(evidence.metadata.createdAt)
-            append("|")
-            append(evidence.metadata.deviceInfo)
-            append("|")
-            append(evidence.metadata.appVersion)
-        }.toString()
-    }
-
-    private fun buildCaseData(forensicCase: ForensicCase): String {
-        return StringBuilder().apply {
-            append(SEAL_PREFIX)
-            append("|CASE|")
-            append(forensicCase.id)
-            append("|")
-            append(forensicCase.name)
-            append("|")
-            append(forensicCase.createdAt)
-            append("|")
-            append(forensicCase.evidence.size)
-            append("|")
-            
-            // Add all evidence hashes in order
-            forensicCase.evidence.sortedBy { it.timestamp }.forEach { evidence ->
-                append(evidence.contentHash)
-                append(";")
-                evidence.sealHash?.let { append(it) }
-                append("|")
-            }
-        }.toString()
-    }
-
-    private fun generateHmacSeal(data: String): String {
-        // Use device-specific key derivation for HMAC
-        val keyMaterial = deriveKeyMaterial()
-        
-        val mac = Mac.getInstance(HMAC_ALGORITHM)
-        val secretKey = SecretKeySpec(keyMaterial, HMAC_ALGORITHM)
-        mac.init(secretKey)
-        
-        val hmacBytes = mac.doFinal(data.toByteArray(Charsets.UTF_8))
-        return hmacBytes.joinToString("") { "%02x".format(it) }
-    }
-
-    private fun deriveKeyMaterial(): ByteArray {
-        // Derive key from constant seed (in production, use secure key storage)
-        val seedPhrase = "VERUM_OMNIS_FORENSIC_INTEGRITY_KEY_V1_LIAM_HIGHCOCK"
-        val digest = MessageDigest.getInstance(HASH_ALGORITHM)
-        return digest.digest(seedPhrase.toByteArray(Charsets.UTF_8)).take(64).toByteArray()
+    private fun ByteArray.toHexString(): String {
+        return joinToString("") { "%02x".format(it) }
     }
 }
+
+/**
+ * Data class representing a complete forensic seal
+ */
+data class ForensicSeal(
+    val contentHash: String,
+    val metadataHash: String,
+    val seal: String,
+    val timestamp: Long,
+    val latitude: Double? = null,
+    val longitude: Double? = null
+)

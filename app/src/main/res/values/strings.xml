@@ -1,42 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Verum Omnis Forensic</string>
-    <string name="tagline">AI Forensics for Truth</string>
-    <string name="version">v1.0.0</string>
+    <string name="app_name">SAPS Forensic Engine</string>
+    <string name="app_title">SAPS Forensic Evidence Engine</string>
+    <string name="app_subtitle">Verum Omnis Constitutional Governance</string>
     
-    <!-- Constitutional Governance -->
-    <string name="constitution_active">Constitutional Governance: ACTIVE</string>
-    <string name="constitution_version">5.1.1</string>
+    <!-- Main Activity -->
+    <string name="new_case">New Case</string>
+    <string name="no_cases">No cases yet.\nTap + to create a new case.</string>
     
-    <!-- Case Management -->
-    <string name="create_case">Create Case</string>
-    <string name="case_name">Case Name</string>
-    <string name="case_description">Description</string>
-    <string name="no_cases">No Cases Yet</string>
-    <string name="create_case_hint">Create a new forensic case to get started</string>
-    
-    <!-- Evidence -->
+    <!-- Case Detail -->
+    <string name="case_details">Case Details</string>
     <string name="add_evidence">Add Evidence</string>
     <string name="document">Document</string>
     <string name="photo">Photo</string>
     <string name="note">Note</string>
-    <string name="sealed">SEALED</string>
-    <string name="unsealed">UNSEALED</string>
+    <string name="evidence_list">Evidence Items</string>
+    <string name="no_evidence">No evidence collected yet.\nUse the buttons above to add evidence.</string>
+    <string name="generate_report">Generate Forensic Report</string>
     
-    <!-- Reports -->
-    <string name="generate_report">Generate Report</string>
-    <string name="verify_integrity">Verify Integrity</string>
-    <string name="share_report">Share Report</string>
-    <string name="save_report">Save Report</string>
+    <!-- Scanner -->
+    <string name="scanner">Evidence Scanner</string>
+    <string name="capture">CAPTURE EVIDENCE</string>
+    <string name="capture_instructions">Position document or scene in frame.\nGPS location will be recorded automatically.</string>
     
-    <!-- Status -->
-    <string name="status_open">OPEN</string>
-    <string name="status_sealed">SEALED</string>
-    <string name="status_reported">REPORTED</string>
-    <string name="status_archived">ARCHIVED</string>
+    <!-- Report Viewer -->
+    <string name="report_viewer">Forensic Report</string>
+    <string name="report_generated">Report Generated Successfully</string>
+    <string name="open_external">Open External</string>
+    <string name="share">Share</string>
     
-    <!-- Forensic Standards -->
-    <string name="hash_standard">SHA-512</string>
-    <string name="pdf_standard">PDF 1.7</string>
-    <string name="watermark">VERUM OMNIS FORENSIC SEAL</string>
+    <!-- Permissions -->
+    <string name="camera_permission_required">Camera permission is required to capture evidence.</string>
+    <string name="location_permission_required">Location permission is required for GPS tagging.</string>
 </resources>
