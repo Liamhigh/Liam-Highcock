@@ -16,5 +16,5 @@
 # For macOS: sdk.dir=/Users/yourusername/Library/Android/sdk
 #
 # Uncomment and edit the line below with your actual SDK path:
-# sdk.dir=/path/to/your/Android/sdk
+# sdk.dir=/Users/yourusername/Library/Android/sdk
 

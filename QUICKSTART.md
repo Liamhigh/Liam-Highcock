@@ -10,12 +10,7 @@ Get building in 5 minutes!
 - Install following the wizard
 
 ### Verify Java 17
-Android Studio bundles Java 17. You can verify:
-```bash
-# After installing Android Studio
-java -version
-# Should show version 17.x.x
-```
+Android Studio bundles Java 17 and uses it automatically. You don't need to install Java separately.
 
 ## Step 2: Clone the Repository
 

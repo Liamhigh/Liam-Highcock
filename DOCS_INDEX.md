@@ -13,7 +13,7 @@ Welcome! This branch contains comprehensive documentation to help you build the 
 ### For Quick Setup
 **[QUICKSTART.md](QUICKSTART.md)** - 5 steps, ~3 minute read
 - Includes prerequisite installation
-- Step-by-step with screenshots descriptions
+- Step-by-step instructions
 - Gets you building in 5 minutes
 - Basic troubleshooting
 
