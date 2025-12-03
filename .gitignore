@@ -1,6 +1,5 @@
 # Built application files
 *.apk
-*.aar
 *.ap_
 *.aab
 
@@ -19,6 +18,7 @@ release/
 # Gradle files
 .gradle/
 build/
+app/build/
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -38,16 +38,9 @@ captures/
 # IntelliJ
 *.iml
 .idea/
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/gradle.xml
-.idea/assetWizardSettings.xml
-.idea/dictionaries
-.idea/libraries
-.idea/caches
-.idea/modules.xml
-.idea/misc.xml
-.idea/vcs.xml
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
 
 # Keystore files
 *.jks
@@ -55,7 +48,6 @@ captures/
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
-.cxx/
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
@@ -82,20 +74,16 @@ lint/outputs/
 lint/tmp/
 lint/reports/
 
-# OS generated files
+# Android Profiling
+*.hprof
+
+# Gradle wrapper jar (optional - can remove if you want to commit it)
+# gradle/wrapper/gradle-wrapper.jar
+
+# Mac OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
 # Temporary files
 *.tmp
 *.temp
-*.swp
-*~
-
-# PDF files (except logos)
-# *.pdf
+/tmp/

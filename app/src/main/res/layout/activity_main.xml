@@ -1,156 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout 
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F1E36"
+    android:background="@color/background_light"
     tools:context=".ui.MainActivity">
 
-    <!-- Header -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/Theme.VerumOmnisForensic">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary"
+            app:title="@string/app_name"
+            app:titleTextColor="@color/white" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
     <LinearLayout
-        android:id="@+id/header"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="24dp"
-        android:background="#0F1E36"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:id="@+id/tvAppName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="VERUM OMNIS"
-            android:textSize="32sp"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:layout_gravity="center_horizontal" />
-
-        <TextView
-            android:id="@+id/tvTagline"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="AI FORENSICS FOR TRUTH"
-            android:textSize="14sp"
-            android:textColor="#1E88E5"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="4dp" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="8dp">
-
-            <TextView
-                android:id="@+id/tvVersion"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="v1.0.0"
-                android:textSize="12sp"
-                android:textColor="#888888" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=" | "
-                android:textColor="#888888" />
-
-            <TextView
-                android:id="@+id/tvConstitution"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Constitutional Governance: ACTIVE"
-                android:textSize="12sp"
-                android:textColor="#4CAF50" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- Case Count -->
-    <TextView
-        android:id="@+id/tvCaseCount"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="0 Active Case(s)"
-        android:textSize="16sp"
-        android:textColor="#FFFFFF"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/header" />
-
-    <!-- Create Case Button -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnCreateCase"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="+ New Case"
-        android:textColor="#FFFFFF"
-        app:backgroundTint="#1E88E5"
-        android:layout_marginEnd="24dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/tvCaseCount"
-        app:layout_constraintBottom_toBottomOf="@id/tvCaseCount" />
-
-    <!-- Cases List -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvCases"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="16dp"
         android:padding="16dp"
-        android:clipToPadding="false"
-        app:layout_constraintTop_toBottomOf="@id/tvCaseCount"
-        app:layout_constraintBottom_toBottomOf="parent" />
-
-    <!-- Empty State -->
-    <LinearLayout
-        android:id="@+id/emptyState"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/tvCaseCount"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="📁"
-            android:textSize="64sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="No Cases Yet"
+            android:text="@string/forensic_cases"
             android:textSize="20sp"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="16dp" />
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:paddingBottom="8dp" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:id="@+id/textEmptyState"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Create a new forensic case to get started"
-            android:textSize="14sp"
-            android:textColor="#888888"
-            android:layout_marginTop="8dp" />
+            android:text="@string/no_cases_yet"
+            android:textAlignment="center"
+            android:textSize="16sp"
+            android:textColor="@color/text_secondary"
+            android:visibility="gone"
+            android:padding="32dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewCases"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            tools:listitem="@layout/item_case" />
+
     </LinearLayout>
 
-    <!-- Progress Bar -->
-    <ProgressBar
-        android:id="@+id/progressBar"
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabNewCase"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/create_new_case"
+        android:src="@android:drawable/ic_input_add"
+        app:backgroundTint="@color/primary" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

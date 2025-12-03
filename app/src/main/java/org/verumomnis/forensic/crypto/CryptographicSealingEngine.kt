@@ -1,178 +1,161 @@
 package org.verumomnis.forensic.crypto
 
-import org.verumomnis.forensic.core.ForensicCase
-import org.verumomnis.forensic.core.ForensicEvidence
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import android.util.Base64
 
 /**
  * Cryptographic Sealing Engine
  * 
- * Provides cryptographic sealing for forensic evidence using:
- * - SHA-512 for content hashing
- * - HMAC-SHA512 for tamper-proof sealing
+ * Implements SHA-512 hashing with HMAC-SHA512 sealing for tamper detection.
+ * All operations are performed locally with no external key exchange.
  * 
- * All operations are stateless and offline-capable.
- * 
- * @author Liam Highcock
- * @version 1.0.0
+ * Standards:
+ * - Hash Algorithm: SHA-512
+ * - Seal Algorithm: HMAC-SHA512
+ * - Encoding: Base64
  */
 class CryptographicSealingEngine {
 
     companion object {
         private const val HASH_ALGORITHM = "SHA-512"
         private const val HMAC_ALGORITHM = "HmacSHA512"
-        private const val SEAL_PREFIX = "VERUM_OMNIS_SEAL_V1"
+        private const val KEY_SIZE = 64 // 512 bits
+        // Application-specific salt for key derivation security
+        private const val APPLICATION_SALT = "VerumOmnisForensicEngine2024"
     }
 
     private val secureRandom = SecureRandom()
 
     /**
-     * Calculate SHA-512 hash of data
+     * Generates a SHA-512 hash of the content
      */
-    fun calculateHash(data: ByteArray): String {
+    fun generateHash(content: ByteArray): String {
         val digest = MessageDigest.getInstance(HASH_ALGORITHM)
-        val hashBytes = digest.digest(data)
-        return hashBytes.joinToString("") { "%02x".format(it) }
+        val hashBytes = digest.digest(content)
+        return Base64.encodeToString(hashBytes, Base64.NO_WRAP)
     }
 
     /**
-     * Calculate SHA-512 hash of string
+     * Generates a SHA-512 hash of a string
      */
-    fun calculateHash(data: String): String {
-        return calculateHash(data.toByteArray(Charsets.UTF_8))
+    fun generateHash(content: String): String {
+        return generateHash(content.toByteArray(Charsets.UTF_8))
     }
 
     /**
-     * Seal evidence with HMAC-SHA512
+     * Generates an HMAC-SHA512 seal for the content
+     * The seal includes the case ID for case-specific integrity verification
      */
-    fun sealEvidence(evidence: ForensicEvidence): String {
-        val sealData = buildSealData(evidence)
-        return generateHmacSeal(sealData)
+    fun generateSeal(content: ByteArray, caseId: String): String {
+        val key = deriveKey(caseId)
+        val mac = Mac.getInstance(HMAC_ALGORITHM)
+        val keySpec = SecretKeySpec(key, HMAC_ALGORITHM)
+        mac.init(keySpec)
+        
+        val sealBytes = mac.doFinal(content)
+        return Base64.encodeToString(sealBytes, Base64.NO_WRAP)
     }
 
     /**
-     * Calculate case integrity hash
+     * Verifies an HMAC-SHA512 seal
      */
-    fun calculateCaseIntegrityHash(forensicCase: ForensicCase): String {
-        val caseData = buildCaseData(forensicCase)
-        return calculateHash(caseData)
+    fun verifySeal(content: ByteArray, caseId: String, seal: String): Boolean {
+        val expectedSeal = generateSeal(content, caseId)
+        return constantTimeEquals(expectedSeal, seal)
     }
 
     /**
-     * Verify evidence seal
+     * Derives a key from the case ID using SHA-512 with application salt
+     * This provides case-specific sealing without external key storage
      */
-    fun verifySeal(evidence: ForensicEvidence, providedSeal: String): Boolean {
-        if (!evidence.sealed || evidence.sealHash == null) {
+    private fun deriveKey(caseId: String): ByteArray {
+        val digest = MessageDigest.getInstance(HASH_ALGORITHM)
+        // Add application-specific salt for key derivation security
+        val saltedInput = APPLICATION_SALT + caseId + APPLICATION_SALT
+        return digest.digest(saltedInput.toByteArray(Charsets.UTF_8))
+    }
+
+    /**
+     * Generates a secure random nonce
+     */
+    fun generateNonce(): ByteArray {
+        val nonce = ByteArray(32)
+        secureRandom.nextBytes(nonce)
+        return nonce
+    }
+
+    /**
+     * Creates a timestamp-bound seal that includes current time
+     */
+    fun generateTimestampedSeal(content: ByteArray, caseId: String, timestamp: Long): String {
+        val timestampBytes = timestamp.toString().toByteArray(Charsets.UTF_8)
+        val combined = content + timestampBytes
+        return generateSeal(combined, caseId)
+    }
+
+    /**
+     * Constant-time comparison to prevent timing attacks
+     */
+    private fun constantTimeEquals(a: String, b: String): Boolean {
+        if (a.length != b.length) {
             return false
         }
         
-        // Recalculate seal
-        val expectedSeal = sealEvidence(evidence.copy(sealed = false, sealHash = null))
-        
-        // Compare seals
-        return expectedSeal == providedSeal
+        var result = 0
+        for (i in a.indices) {
+            result = result or (a[i].code xor b[i].code)
+        }
+        return result == 0
     }
 
     /**
-     * Verify content hash
+     * Generates a chain seal that links to previous evidence
      */
-    fun verifyContentHash(content: ByteArray, expectedHash: String): Boolean {
-        val calculatedHash = calculateHash(content)
-        return calculatedHash == expectedHash
+    fun generateChainSeal(
+        content: ByteArray,
+        caseId: String,
+        previousSeal: String?
+    ): String {
+        val chainData = if (previousSeal != null) {
+            content + previousSeal.toByteArray(Charsets.UTF_8)
+        } else {
+            content
+        }
+        return generateSeal(chainData, caseId)
     }
 
     /**
-     * Generate cryptographic salt
+     * Creates a complete evidence seal record
      */
-    fun generateSalt(length: Int = 32): ByteArray {
-        val salt = ByteArray(length)
-        secureRandom.nextBytes(salt)
-        return salt
-    }
-
-    /**
-     * Generate timestamp-based nonce
-     */
-    fun generateNonce(): String {
+    fun createSealRecord(
+        content: ByteArray,
+        caseId: String,
+        evidenceId: String
+    ): SealRecord {
+        val hash = generateHash(content)
+        val seal = generateSeal(content, caseId)
         val timestamp = System.currentTimeMillis()
-        val random = ByteArray(8)
-        secureRandom.nextBytes(random)
-        val randomHex = random.joinToString("") { "%02x".format(it) }
-        return "$timestamp-$randomHex"
-    }
-
-    // Private helper methods
-
-    private fun buildSealData(evidence: ForensicEvidence): String {
-        return StringBuilder().apply {
-            append(SEAL_PREFIX)
-            append("|")
-            append(evidence.id)
-            append("|")
-            append(evidence.type.name)
-            append("|")
-            append(evidence.contentHash)
-            append("|")
-            append(evidence.mimeType)
-            append("|")
-            append(evidence.timestamp)
-            append("|")
-            evidence.location?.let {
-                append("${it.latitude},${it.longitude},${it.accuracy}")
-            } ?: append("NO_LOCATION")
-            append("|")
-            append(evidence.metadata.fileSize)
-            append("|")
-            append(evidence.metadata.createdAt)
-            append("|")
-            append(evidence.metadata.deviceInfo)
-            append("|")
-            append(evidence.metadata.appVersion)
-        }.toString()
-    }
-
-    private fun buildCaseData(forensicCase: ForensicCase): String {
-        return StringBuilder().apply {
-            append(SEAL_PREFIX)
-            append("|CASE|")
-            append(forensicCase.id)
-            append("|")
-            append(forensicCase.name)
-            append("|")
-            append(forensicCase.createdAt)
-            append("|")
-            append(forensicCase.evidence.size)
-            append("|")
-            
-            // Add all evidence hashes in order
-            forensicCase.evidence.sortedBy { it.timestamp }.forEach { evidence ->
-                append(evidence.contentHash)
-                append(";")
-                evidence.sealHash?.let { append(it) }
-                append("|")
-            }
-        }.toString()
-    }
-
-    private fun generateHmacSeal(data: String): String {
-        // Use device-specific key derivation for HMAC
-        val keyMaterial = deriveKeyMaterial()
         
-        val mac = Mac.getInstance(HMAC_ALGORITHM)
-        val secretKey = SecretKeySpec(keyMaterial, HMAC_ALGORITHM)
-        mac.init(secretKey)
-        
-        val hmacBytes = mac.doFinal(data.toByteArray(Charsets.UTF_8))
-        return hmacBytes.joinToString("") { "%02x".format(it) }
-    }
-
-    private fun deriveKeyMaterial(): ByteArray {
-        // Derive key from constant seed (in production, use secure key storage)
-        val seedPhrase = "VERUM_OMNIS_FORENSIC_INTEGRITY_KEY_V1_LIAM_HIGHCOCK"
-        val digest = MessageDigest.getInstance(HASH_ALGORITHM)
-        return digest.digest(seedPhrase.toByteArray(Charsets.UTF_8)).take(64).toByteArray()
+        return SealRecord(
+            evidenceId = evidenceId,
+            hash = hash,
+            seal = seal,
+            algorithm = HASH_ALGORITHM,
+            timestamp = timestamp
+        )
     }
 }
+
+/**
+ * Record of a cryptographic seal
+ */
+data class SealRecord(
+    val evidenceId: String,
+    val hash: String,
+    val seal: String,
+    val algorithm: String,
+    val timestamp: Long
+)

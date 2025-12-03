@@ -1,42 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Verum Omnis Forensic</string>
-    <string name="tagline">AI Forensics for Truth</string>
-    <string name="version">v1.0.0</string>
     
-    <!-- Constitutional Governance -->
-    <string name="constitution_active">Constitutional Governance: ACTIVE</string>
-    <string name="constitution_version">5.1.1</string>
+    <!-- Main Screen -->
+    <string name="forensic_cases">Forensic Cases</string>
+    <string name="no_cases_yet">No cases yet.\nTap + to create a new forensic case.</string>
+    <string name="create_new_case">Create New Case</string>
     
-    <!-- Case Management -->
-    <string name="create_case">Create Case</string>
+    <!-- Case Dialog -->
     <string name="case_name">Case Name</string>
-    <string name="case_description">Description</string>
-    <string name="no_cases">No Cases Yet</string>
-    <string name="create_case_hint">Create a new forensic case to get started</string>
+    <string name="case_description">Case Description (optional)</string>
     
-    <!-- Evidence -->
+    <!-- Scanner Screen -->
+    <string name="evidence_scanner">Evidence Scanner</string>
     <string name="add_evidence">Add Evidence</string>
-    <string name="document">Document</string>
-    <string name="photo">Photo</string>
-    <string name="note">Note</string>
-    <string name="sealed">SEALED</string>
-    <string name="unsealed">UNSEALED</string>
+    <string name="generate_forensic_report">Generate Forensic Report</string>
+    <string name="text_note">Text Note</string>
     
-    <!-- Reports -->
-    <string name="generate_report">Generate Report</string>
-    <string name="verify_integrity">Verify Integrity</string>
+    <!-- Report Screen -->
+    <string name="forensic_report">Forensic Report</string>
+    <string name="verum_omnis_forensic_report">Verum Omnis Forensic Report</string>
+    <string name="integrity_assessment">Integrity Assessment</string>
+    <string name="report_location">Report Location</string>
+    <string name="open_pdf">Open PDF</string>
     <string name="share_report">Share Report</string>
-    <string name="save_report">Save Report</string>
     
-    <!-- Status -->
-    <string name="status_open">OPEN</string>
-    <string name="status_sealed">SEALED</string>
-    <string name="status_reported">REPORTED</string>
-    <string name="status_archived">ARCHIVED</string>
-    
-    <!-- Forensic Standards -->
-    <string name="hash_standard">SHA-512</string>
-    <string name="pdf_standard">PDF 1.7</string>
-    <string name="watermark">VERUM OMNIS FORENSIC SEAL</string>
+    <!-- Constitution Principles -->
+    <string name="principle_truth">Truth: Factual accuracy and verifiable evidence</string>
+    <string name="principle_fairness">Fairness: Protection of vulnerable parties</string>
+    <string name="principle_human_rights">Human Rights: Dignity, equality, and agency</string>
+    <string name="principle_non_extraction">Non-Extraction: No sensitive data transmission</string>
+    <string name="principle_human_authority">Human Authority: AI assists, never overrides</string>
+    <string name="principle_integrity">Integrity: No manipulation or bias</string>
+    <string name="principle_independence">Independence: No external influence on outputs</string>
 </resources>
