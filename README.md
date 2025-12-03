@@ -233,6 +233,8 @@ Copyright © 2024 Verum Global Foundation
 
 This application is provided free of charge to the South African Police Service for use in lawful forensic evidence collection.
 
+[![GitHub](https://img.shields.io/badge/GitHub-Liamhigh-181717?logo=github)](https://github.com/Liamhigh)
+
 ---
 
 <p align="center">
