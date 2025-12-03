@@ -1,237 +1,235 @@
 package org.verumomnis.forensic.report
 
-import org.verumomnis.forensic.core.EvidenceType
+import org.verumomnis.forensic.core.Finding
+import org.verumomnis.forensic.core.FindingType
 import org.verumomnis.forensic.core.ForensicCase
-import org.verumomnis.forensic.core.ForensicEvidence
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import org.verumomnis.forensic.core.Severity
+import java.time.format.DateTimeFormatter
 
 /**
  * Forensic Narrative Generator
  * 
  * Generates structured forensic narratives following legal admissibility standards.
- * AI-readable format for automated analysis and court presentation.
- * 
- * @author Liam Highcock
+ * Outputs are AI-readable and suitable for court presentation.
  */
 class ForensicNarrativeGenerator {
 
-    companion object {
-        private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-    }
+    private val dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' HH:mm:ss")
 
     /**
      * Generates a complete forensic narrative for a case
      */
-    fun generateNarrative(case: ForensicCase): ForensicNarrative {
-        val sections = mutableListOf<NarrativeSection>()
-
-        // Case Overview Section
-        sections.add(generateCaseOverview(case))
-
-        // Evidence Summary Section
-        sections.add(generateEvidenceSummary(case))
-
-        // Detailed Evidence Section
-        case.evidence.forEachIndexed { index, evidence ->
-            sections.add(generateEvidenceDetail(evidence, index + 1))
+    fun generateNarrative(case: ForensicCase, findings: List<Finding>): String {
+        val builder = StringBuilder()
+        
+        // Opening statement
+        builder.append(generateOpeningStatement(case))
+        
+        // Evidence summary
+        builder.append("\n\n")
+        builder.append(generateEvidenceSummary(case))
+        
+        // Timeline reconstruction
+        builder.append("\n\n")
+        builder.append(generateTimeline(case))
+        
+        // Findings analysis
+        if (findings.isNotEmpty()) {
+            builder.append("\n\n")
+            builder.append(generateFindingsAnalysis(findings))
         }
-
-        // Chain of Custody Section
-        sections.add(generateChainOfCustody(case))
-
-        // Integrity Verification Section
-        sections.add(generateIntegritySection(case))
-
-        return ForensicNarrative(
-            caseNumber = case.caseNumber,
-            generatedAt = System.currentTimeMillis(),
-            sections = sections
-        )
+        
+        // Integrity assessment
+        builder.append("\n\n")
+        builder.append(generateIntegrityAssessment(case, findings))
+        
+        // Closing statement
+        builder.append("\n\n")
+        builder.append(generateClosingStatement(case, findings))
+        
+        return builder.toString()
     }
 
-    private fun generateCaseOverview(case: ForensicCase): NarrativeSection {
-        val content = buildString {
-            appendLine("FORENSIC CASE OVERVIEW")
-            appendLine("=" .repeat(50))
-            appendLine()
-            appendLine("Case Number: ${case.caseNumber}")
-            appendLine("Description: ${case.description}")
-            appendLine("Status: ${case.status}")
-            appendLine("Created: ${dateFormat.format(Date(case.createdAt))}")
-            appendLine("Evidence Count: ${case.evidence.size}")
-            appendLine()
-            appendLine("This report was generated in accordance with Verum Omnis")
-            appendLine("Constitutional Governance standards for forensic evidence.")
-        }
-        return NarrativeSection(
-            title = "Case Overview",
-            content = content,
-            type = SectionType.HEADER
-        )
+    private fun generateOpeningStatement(case: ForensicCase): String {
+        return """
+            FORENSIC EXAMINATION REPORT
+            
+            This report documents the forensic examination conducted for case "${case.name}" 
+            (Case ID: ${case.id}), initiated on ${case.createdAt.format(dateFormatter)}. 
+            The examination was performed in accordance with the Verum Omnis Constitutional 
+            Governance Layer, ensuring adherence to principles of Truth, Fairness, and 
+            Human Rights throughout the forensic process.
+            
+            Jurisdiction: ${case.jurisdiction}
+            Current Status: ${case.status.name}
+        """.trimIndent()
     }
 
-    private fun generateEvidenceSummary(case: ForensicCase): NarrativeSection {
+    private fun generateEvidenceSummary(case: ForensicCase): String {
         val evidenceByType = case.evidence.groupBy { it.type }
         
-        val content = buildString {
-            appendLine("EVIDENCE SUMMARY")
-            appendLine("=" .repeat(50))
-            appendLine()
-            
-            EvidenceType.entries.forEach { type ->
-                val count = evidenceByType[type]?.size ?: 0
-                if (count > 0) {
-                    appendLine("${type.name}: $count item(s)")
-                }
-            }
-            
-            appendLine()
-            appendLine("Total Evidence Items: ${case.evidence.size}")
+        val typeBreakdown = evidenceByType.entries.joinToString(", ") { (type, items) ->
+            "${items.size} ${type.name.lowercase()}(s)"
         }
         
-        return NarrativeSection(
-            title = "Evidence Summary",
-            content = content,
-            type = SectionType.SUMMARY
-        )
+        return """
+            EVIDENCE SUMMARY
+            
+            A total of ${case.evidence.size} piece(s) of evidence were collected and sealed 
+            using SHA-512 cryptographic hashing with HMAC-SHA512 sealing for tamper detection.
+            
+            Evidence breakdown: $typeBreakdown
+            
+            All evidence has been processed through the Verum Omnis Forensic Engine and 
+            assigned unique cryptographic seals for chain of custody verification.
+        """.trimIndent()
     }
 
-    private fun generateEvidenceDetail(evidence: ForensicEvidence, index: Int): NarrativeSection {
-        val content = buildString {
-            appendLine("EVIDENCE ITEM #$index")
-            appendLine("-".repeat(40))
-            appendLine()
-            appendLine("ID: ${evidence.id}")
-            appendLine("Type: ${evidence.type}")
-            appendLine("Description: ${evidence.description}")
-            appendLine("Captured: ${dateFormat.format(Date(evidence.capturedAt))}")
+    private fun generateTimeline(case: ForensicCase): String {
+        val sortedEvidence = case.evidence.sortedBy { it.timestamp }
+        
+        if (sortedEvidence.isEmpty()) {
+            return """
+                TIMELINE RECONSTRUCTION
+                
+                No evidence has been collected for this case yet.
+            """.trimIndent()
+        }
+        
+        val firstEvidence = sortedEvidence.first()
+        val lastEvidence = sortedEvidence.last()
+        
+        val timelineEntries = sortedEvidence.mapIndexed { index, evidence ->
+            val locationInfo = evidence.location?.let { 
+                " at coordinates (${String.format("%.6f", it.latitude)}, ${String.format("%.6f", it.longitude)})"
+            } ?: ""
             
-            if (evidence.latitude != null && evidence.longitude != null) {
-                appendLine()
-                appendLine("GPS Location:")
-                appendLine("  Latitude: ${evidence.latitude}")
-                appendLine("  Longitude: ${evidence.longitude}")
+            "${index + 1}. ${evidence.timestamp.format(dateFormatter)}: ${evidence.contentDescription}$locationInfo"
+        }.joinToString("\n")
+        
+        return """
+            TIMELINE RECONSTRUCTION
+            
+            Evidence collection period: ${firstEvidence.timestamp.format(dateFormatter)} 
+            to ${lastEvidence.timestamp.format(dateFormatter)}
+            
+            Chronological sequence of evidence:
+            
+            $timelineEntries
+        """.trimIndent()
+    }
+
+    private fun generateFindingsAnalysis(findings: List<Finding>): String {
+        val findingsByType = findings.groupBy { it.type }
+        val findingsBySeverity = findings.groupBy { it.severity }
+        
+        val severitySummary = listOf(
+            Severity.CRITICAL to findingsBySeverity[Severity.CRITICAL]?.size ?: 0,
+            Severity.HIGH to findingsBySeverity[Severity.HIGH]?.size ?: 0,
+            Severity.MEDIUM to findingsBySeverity[Severity.MEDIUM]?.size ?: 0,
+            Severity.LOW to findingsBySeverity[Severity.LOW]?.size ?: 0
+        ).filter { it.second > 0 }
+            .joinToString(", ") { "${it.second} ${it.first.name}" }
+        
+        val detailedFindings = findings.mapIndexed { index, finding ->
+            """
+                Finding ${index + 1}:
+                Type: ${finding.type.name.replace("_", " ")}
+                Severity: ${finding.severity.name}
+                Description: ${finding.description}
+                Affected Evidence: ${finding.evidenceIds.size} item(s)
+            """.trimIndent()
+        }.joinToString("\n\n")
+        
+        return """
+            FINDINGS ANALYSIS
+            
+            The forensic examination identified ${findings.size} finding(s) requiring attention.
+            
+            Severity distribution: $severitySummary
+            
+            Detailed findings:
+            
+            $detailedFindings
+        """.trimIndent()
+    }
+
+    private fun generateIntegrityAssessment(case: ForensicCase, findings: List<Finding>): String {
+        val integrityIssues = findings.filter { it.type == FindingType.DATA_INTEGRITY_ISSUE }
+        val hasIntegrityIssues = integrityIssues.isNotEmpty()
+        
+        val assessment = if (hasIntegrityIssues) {
+            """
+                INTEGRITY STATUS: COMPROMISED
+                
+                ${integrityIssues.size} integrity issue(s) were detected during examination. 
+                Evidence chain may have been tampered with. Additional investigation is recommended 
+                before relying on affected evidence items.
+            """.trimIndent()
+        } else {
+            """
+                INTEGRITY STATUS: VERIFIED
+                
+                All evidence items have passed cryptographic verification. The SHA-512 hashes 
+                and HMAC-SHA512 seals are intact, confirming that no tampering has occurred 
+                since evidence collection.
+            """.trimIndent()
+        }
+        
+        return """
+            INTEGRITY ASSESSMENT
+            
+            $assessment
+            
+            Verification standard: SHA-512 with HMAC-SHA512 sealing
+            Tamper detection: Enabled
+            Chain of custody: ${if (hasIntegrityIssues) "Potentially compromised" else "Intact"}
+        """.trimIndent()
+    }
+
+    private fun generateClosingStatement(case: ForensicCase, findings: List<Finding>): String {
+        val criticalFindings = findings.count { it.severity == Severity.CRITICAL }
+        val highFindings = findings.count { it.severity == Severity.HIGH }
+        
+        val recommendation = when {
+            criticalFindings > 0 -> {
+                "Immediate attention required. Critical findings indicate significant issues " +
+                "that must be addressed before proceeding with case presentation."
             }
-            
-            evidence.contentHash?.let {
-                appendLine()
-                appendLine("Content Hash (SHA-512):")
-                appendLine("  $it")
+            highFindings > 0 -> {
+                "Review recommended. High-severity findings should be addressed to strengthen " +
+                "the evidentiary basis of this case."
             }
-            
-            evidence.sealHash?.let {
-                appendLine()
-                appendLine("Seal Hash:")
-                appendLine("  $it")
+            findings.isNotEmpty() -> {
+                "Minor issues identified. The case may proceed with awareness of the noted findings."
             }
-            
-            evidence.metadata.notes?.let {
-                appendLine()
-                appendLine("Notes: $it")
-            }
-            
-            evidence.metadata.deviceInfo?.let {
-                appendLine("Device: $it")
+            else -> {
+                "No significant issues identified. The evidence chain is intact and suitable " +
+                "for legal proceedings."
             }
         }
         
-        return NarrativeSection(
-            title = "Evidence #$index: ${evidence.description}",
-            content = content,
-            type = SectionType.EVIDENCE
-        )
-    }
-
-    private fun generateChainOfCustody(case: ForensicCase): NarrativeSection {
-        val content = buildString {
-            appendLine("CHAIN OF CUSTODY")
-            appendLine("=" .repeat(50))
-            appendLine()
-            appendLine("This section documents the chain of custody for all")
-            appendLine("evidence items contained within this forensic report.")
-            appendLine()
+        return """
+            CONCLUSION AND RECOMMENDATIONS
             
-            case.evidence.sortedBy { it.capturedAt }.forEachIndexed { index, evidence ->
-                appendLine("${index + 1}. ${evidence.description}")
-                appendLine("   Collected: ${dateFormat.format(Date(evidence.capturedAt))}")
-                evidence.metadata.collectorId?.let {
-                    appendLine("   Collector: $it")
-                }
-                appendLine()
-            }
+            This forensic examination of case "${case.name}" has been completed in accordance 
+            with the Verum Omnis Constitutional Governance Layer standards.
             
-            appendLine("All evidence has been cryptographically sealed using SHA-512")
-            appendLine("hash standard with HMAC-SHA512 tamper detection.")
-        }
-        
-        return NarrativeSection(
-            title = "Chain of Custody",
-            content = content,
-            type = SectionType.CUSTODY
-        )
+            Assessment: $recommendation
+            
+            This report was generated by the Verum Omnis Forensic Engine operating under 
+            the following constitutional principles:
+            - Truth: Factual accuracy and verifiable evidence
+            - Fairness: Protection of vulnerable parties
+            - Human Rights: Dignity, equality, and agency
+            - Integrity: No manipulation or bias
+            
+            All findings and recommendations are provided for human review and decision-making. 
+            The Verum Omnis system assists but never overrides human authority.
+            
+            ---
+            Report generated on behalf of: Verum Global Foundation
+            Creator: Liam Highcock
+        """.trimIndent()
     }
-
-    private fun generateIntegritySection(case: ForensicCase): NarrativeSection {
-        val content = buildString {
-            appendLine("INTEGRITY VERIFICATION")
-            appendLine("=" .repeat(50))
-            appendLine()
-            appendLine("Hash Standard: SHA-512")
-            appendLine("Seal Algorithm: HMAC-SHA512")
-            appendLine("Tamper Detection: ENABLED")
-            appendLine()
-            appendLine("All evidence items have been cryptographically sealed")
-            appendLine("at the time of collection. Any modification to the")
-            appendLine("evidence after sealing will be detectable through")
-            appendLine("hash verification.")
-            appendLine()
-            appendLine("VERUM OMNIS CONSTITUTIONAL GOVERNANCE")
-            appendLine("This report adheres to the following principles:")
-            appendLine("  - Truth: Factual accuracy and verifiable evidence")
-            appendLine("  - Fairness: Protection of vulnerable parties")
-            appendLine("  - Human Rights: Dignity, equality, and agency")
-            appendLine("  - Integrity: No manipulation or bias")
-        }
-        
-        return NarrativeSection(
-            title = "Integrity Verification",
-            content = content,
-            type = SectionType.VERIFICATION
-        )
-    }
-}
-
-/**
- * Represents a complete forensic narrative
- */
-data class ForensicNarrative(
-    val caseNumber: String,
-    val generatedAt: Long,
-    val sections: List<NarrativeSection>
-) {
-    fun toFullText(): String {
-        return sections.joinToString("\n\n") { it.content }
-    }
-}
-
-/**
- * A section of the forensic narrative
- */
-data class NarrativeSection(
-    val title: String,
-    val content: String,
-    val type: SectionType
-)
-
-/**
- * Types of narrative sections
- */
-enum class SectionType {
-    HEADER,
-    SUMMARY,
-    EVIDENCE,
-    CUSTODY,
-    VERIFICATION
 }

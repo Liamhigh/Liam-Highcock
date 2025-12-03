@@ -1,25 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout 
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
+    android:background="@color/background_light"
     tools:context=".ui.MainActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fitsSystemWindows="true">
+        android:theme="@style/Theme.VerumOmnisForensic">
 
-        <com.google.android.material.appbar.MaterialToolbar
+        <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/saps_blue"
-            app:titleTextColor="@android:color/white"
-            app:subtitleTextColor="@android:color/white" />
+            android:background="@color/primary"
+            app:title="@string/app_name"
+            app:titleTextColor="@color/white" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -30,52 +29,26 @@
         android:padding="16dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- Header Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardElevation="4dp"
-            app:cardCornerRadius="8dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/app_title"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/saps_blue" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/app_subtitle"
-                    android:textSize="12sp"
-                    android:textColor="@android:color/darker_gray" />
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- No Cases Message -->
         <TextView
-            android:id="@+id/textNoCases"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="48dp"
-            android:gravity="center"
-            android:text="@string/no_cases"
-            android:textSize="16sp"
-            android:textColor="@android:color/darker_gray"
-            android:visibility="gone" />
+            android:text="@string/forensic_cases"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:paddingBottom="8dp" />
 
-        <!-- Cases List -->
+        <TextView
+            android:id="@+id/textEmptyState"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/no_cases_yet"
+            android:textAlignment="center"
+            android:textSize="16sp"
+            android:textColor="@color/text_secondary"
+            android:visibility="gone"
+            android:padding="32dp" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerViewCases"
             android:layout_width="match_parent"
@@ -85,17 +58,14 @@
 
     </LinearLayout>
 
-    <!-- FAB for new case -->
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabNewCase"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:text="@string/new_case"
-        android:textColor="@android:color/white"
-        app:icon="@android:drawable/ic_input_add"
-        app:iconTint="@android:color/white"
-        app:backgroundTint="@color/saps_blue" />
+        android:contentDescription="@string/create_new_case"
+        android:src="@android:drawable/ic_input_add"
+        app:backgroundTint="@color/primary" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

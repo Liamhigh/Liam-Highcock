@@ -2,38 +2,35 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permissions required for forensic evidence collection -->
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Permissions for forensic evidence collection -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
-    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <!-- Camera feature declaration -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <application
         android:name=".core.VerumOmnisApplication"
         android:allowBackup="false"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ForensicEngine"
+        android:theme="@style/Theme.VerumOmnisForensic"
         android:usesCleartextTraffic="false"
-        tools:targetApi="31">
+        tools:targetApi="34">
 
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.ForensicEngine">
+            android:theme="@style/Theme.VerumOmnisForensic">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -41,27 +38,15 @@
         </activity>
 
         <activity
-            android:name=".ui.CaseDetailActivity"
-            android:exported="false"
-            android:label="@string/case_details"
-            android:parentActivityName=".ui.MainActivity"
-            android:screenOrientation="portrait" />
-
-        <activity
             android:name=".ui.ScannerActivity"
             android:exported="false"
-            android:label="@string/scanner"
-            android:parentActivityName=".ui.CaseDetailActivity"
-            android:screenOrientation="portrait" />
+            android:theme="@style/Theme.VerumOmnisForensic" />
 
         <activity
             android:name=".ui.ReportViewerActivity"
             android:exported="false"
-            android:label="@string/report_viewer"
-            android:parentActivityName=".ui.CaseDetailActivity"
-            android:screenOrientation="portrait" />
+            android:theme="@style/Theme.VerumOmnisForensic" />
 
-        <!-- File Provider for sharing reports -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

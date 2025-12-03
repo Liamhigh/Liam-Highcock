@@ -1,44 +1,52 @@
 package org.verumomnis.forensic.core
 
 import android.app.Application
-import android.util.Log
 
 /**
- * SAPS Forensic Evidence Engine Application
+ * Verum Omnis Forensic Application
  * 
- * Verum Omnis Constitutional Governance Layer
- * - Offline-first design
- * - No cloud logging or telemetry
- * - Stateless operation
- * - Airgap ready
+ * Operating under the Verum Omnis Constitution Mode:
+ * - Truth: Factual accuracy and verifiable evidence
+ * - Fairness: Protection of vulnerable parties
+ * - Human Rights: Dignity, equality, and agency
+ * - Non-Extraction: No sensitive data transmission
+ * - Human Authority: AI assists, never overrides
+ * - Integrity: No manipulation or bias
+ * - Independence: No external influence on outputs
  * 
- * Copyright © 2024 Verum Global Foundation
- * Created by Liam Highcock
+ * Security Features:
+ * - Offline First: True
+ * - Stateless: True
+ * - No Cloud Logging: True
+ * - No Telemetry: True
+ * - Airgap Ready: True
  */
 class VerumOmnisApplication : Application() {
 
-    companion object {
-        private const val TAG = "VerumOmnis"
-        const val VERSION = "1.0.0"
-        const val HASH_STANDARD = "SHA-512"
-        const val PDF_STANDARD = "1.7"
-        
-        @Volatile
-        private var instance: VerumOmnisApplication? = null
-        
-        fun getInstance(): VerumOmnisApplication {
-            return instance ?: throw IllegalStateException("Application not initialized")
-        }
-    }
+    lateinit var forensicEngine: ForensicEngine
+        private set
 
     override fun onCreate() {
         super.onCreate()
         instance = this
-        
-        Log.i(TAG, "SAPS Forensic Engine v$VERSION initialized")
-        Log.i(TAG, "Constitutional Governance: Verum Omnis Mode Active")
-        Log.i(TAG, "Hash Standard: $HASH_STANDARD")
-        Log.i(TAG, "Offline Mode: Enabled")
-        Log.i(TAG, "Telemetry: Disabled")
+        initializeForensicEngine()
+    }
+
+    private fun initializeForensicEngine() {
+        forensicEngine = ForensicEngine(applicationContext)
+    }
+
+    companion object {
+        private lateinit var instance: VerumOmnisApplication
+
+        fun getInstance(): VerumOmnisApplication = instance
+
+        // Constitution Mode Constants
+        const val HASH_STANDARD = "SHA-512"
+        const val PDF_STANDARD = "PDF 1.7"
+        const val WATERMARK = "VERUM OMNIS"
+        const val QR_CODE_ENABLED = true
+        const val TAMPER_DETECTION_MANDATORY = true
+        const val ADMISSIBILITY_STANDARD = "Legal-grade"
     }
 }

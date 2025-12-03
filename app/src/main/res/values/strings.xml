@@ -1,35 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SAPS Forensic Engine</string>
-    <string name="app_title">SAPS Forensic Evidence Engine</string>
-    <string name="app_subtitle">Verum Omnis Constitutional Governance</string>
+    <string name="app_name">Verum Omnis Forensic</string>
     
-    <!-- Main Activity -->
-    <string name="new_case">New Case</string>
-    <string name="no_cases">No cases yet.\nTap + to create a new case.</string>
+    <!-- Main Screen -->
+    <string name="forensic_cases">Forensic Cases</string>
+    <string name="no_cases_yet">No cases yet.\nTap + to create a new forensic case.</string>
+    <string name="create_new_case">Create New Case</string>
     
-    <!-- Case Detail -->
-    <string name="case_details">Case Details</string>
+    <!-- Case Dialog -->
+    <string name="case_name">Case Name</string>
+    <string name="case_description">Case Description (optional)</string>
+    
+    <!-- Scanner Screen -->
+    <string name="evidence_scanner">Evidence Scanner</string>
     <string name="add_evidence">Add Evidence</string>
-    <string name="document">Document</string>
-    <string name="photo">Photo</string>
-    <string name="note">Note</string>
-    <string name="evidence_list">Evidence Items</string>
-    <string name="no_evidence">No evidence collected yet.\nUse the buttons above to add evidence.</string>
-    <string name="generate_report">Generate Forensic Report</string>
+    <string name="generate_forensic_report">Generate Forensic Report</string>
+    <string name="text_note">Text Note</string>
     
-    <!-- Scanner -->
-    <string name="scanner">Evidence Scanner</string>
-    <string name="capture">CAPTURE EVIDENCE</string>
-    <string name="capture_instructions">Position document or scene in frame.\nGPS location will be recorded automatically.</string>
+    <!-- Report Screen -->
+    <string name="forensic_report">Forensic Report</string>
+    <string name="verum_omnis_forensic_report">Verum Omnis Forensic Report</string>
+    <string name="integrity_assessment">Integrity Assessment</string>
+    <string name="report_location">Report Location</string>
+    <string name="open_pdf">Open PDF</string>
+    <string name="share_report">Share Report</string>
     
-    <!-- Report Viewer -->
-    <string name="report_viewer">Forensic Report</string>
-    <string name="report_generated">Report Generated Successfully</string>
-    <string name="open_external">Open External</string>
-    <string name="share">Share</string>
-    
-    <!-- Permissions -->
-    <string name="camera_permission_required">Camera permission is required to capture evidence.</string>
-    <string name="location_permission_required">Location permission is required for GPS tagging.</string>
+    <!-- Constitution Principles -->
+    <string name="principle_truth">Truth: Factual accuracy and verifiable evidence</string>
+    <string name="principle_fairness">Fairness: Protection of vulnerable parties</string>
+    <string name="principle_human_rights">Human Rights: Dignity, equality, and agency</string>
+    <string name="principle_non_extraction">Non-Extraction: No sensitive data transmission</string>
+    <string name="principle_human_authority">Human Authority: AI assists, never overrides</string>
+    <string name="principle_integrity">Integrity: No manipulation or bias</string>
+    <string name="principle_independence">Independence: No external influence on outputs</string>
 </resources>

@@ -1,194 +1,234 @@
 package org.verumomnis.forensic.core
 
 import android.content.Context
-import android.util.Log
 import org.verumomnis.forensic.crypto.CryptographicSealingEngine
 import org.verumomnis.forensic.location.ForensicLocationService
 import org.verumomnis.forensic.pdf.ForensicPdfGenerator
 import org.verumomnis.forensic.report.ForensicNarrativeGenerator
-import java.io.File
-import java.util.concurrent.ConcurrentHashMap
+import java.time.LocalDateTime
+import java.util.UUID
 
 /**
- * Core Forensic Engine for SAPS
+ * Core Forensic Engine
  * 
- * Implements Verum Omnis Constitutional Governance Layer
- * - Truth: Factual accuracy and verifiable evidence
- * - Fairness: Protection of vulnerable parties
- * - Human Rights: Dignity, equality, and agency
- * - Non-Extraction: No sensitive data transmission
- * - Human Authority: AI assists, never overrides
- * - Integrity: No manipulation or bias
- * - Independence: No external influence on outputs
+ * Implements the Verum Omnis forensic collection and analysis system.
+ * All operations are performed offline with no external data transmission.
  * 
- * @author Liam Highcock
+ * Features:
+ * - SHA-512 evidence hashing
+ * - HMAC-SHA512 cryptographic sealing
+ * - GPS location tagging
+ * - PDF report generation with watermarks and QR codes
+ * - Tamper detection
+ * - Legal-grade admissibility standards
  */
 class ForensicEngine(private val context: Context) {
 
-    companion object {
-        private const val TAG = "ForensicEngine"
-    }
-
-    private val cryptoEngine = CryptographicSealingEngine()
+    private val sealingEngine = CryptographicSealingEngine()
     private val locationService = ForensicLocationService(context)
     private val pdfGenerator = ForensicPdfGenerator(context)
     private val narrativeGenerator = ForensicNarrativeGenerator()
-    
-    // In-memory case storage (stateless between sessions)
-    private val activeCases = ConcurrentHashMap<String, ForensicCase>()
+
+    private val cases = mutableMapOf<String, ForensicCase>()
 
     /**
      * Creates a new forensic case
      */
-    fun createCase(caseNumber: String, description: String): ForensicCase {
+    fun createCase(name: String, description: String = "", jurisdiction: String = "UAE"): ForensicCase {
         val case = ForensicCase(
-            caseNumber = caseNumber,
-            description = description
+            name = name,
+            description = description,
+            jurisdiction = jurisdiction
         )
-        activeCases[case.id] = case
-        Log.i(TAG, "Created case: ${case.caseNumber}")
+        cases[case.id] = case
         return case
     }
 
     /**
-     * Retrieves an active case by ID
+     * Gets a case by ID
      */
-    fun getCase(caseId: String): ForensicCase? {
-        return activeCases[caseId]
-    }
+    fun getCase(caseId: String): ForensicCase? = cases[caseId]
 
     /**
-     * Gets all active cases
+     * Gets all cases
      */
-    fun getAllCases(): List<ForensicCase> {
-        return activeCases.values.toList()
-    }
+    fun getAllCases(): List<ForensicCase> = cases.values.toList()
 
     /**
-     * Adds evidence to a case with GPS location and cryptographic sealing
+     * Adds evidence to a case with cryptographic sealing
      */
     suspend fun addEvidence(
         caseId: String,
         type: EvidenceType,
-        description: String,
-        content: ByteArray? = null,
-        filePath: String? = null,
-        notes: String? = null
+        content: ByteArray,
+        contentDescription: String,
+        metadata: EvidenceMetadata = EvidenceMetadata()
     ): ForensicEvidence? {
-        val case = activeCases[caseId] ?: return null
+        val case = cases[caseId] ?: return null
 
-        // Get current GPS location
+        // Get current location if available
         val location = locationService.getCurrentLocation()
 
-        // Calculate content hash if content is provided
-        val contentHash = content?.let { cryptoEngine.calculateHash(it) }
-        
-        // Calculate seal hash (includes metadata)
-        val sealData = buildString {
-            append(caseId)
-            append(type.name)
-            append(description)
-            append(System.currentTimeMillis())
-            contentHash?.let { append(it) }
-            location?.let { 
-                append(it.latitude)
-                append(it.longitude)
-            }
-        }
-        val sealHash = cryptoEngine.calculateHash(sealData.toByteArray())
+        // Generate hash and seal
+        val hash = sealingEngine.generateHash(content)
+        val seal = sealingEngine.generateSeal(content, caseId)
 
         val evidence = ForensicEvidence(
             type = type,
-            description = description,
-            latitude = location?.latitude,
-            longitude = location?.longitude,
-            filePath = filePath,
-            contentHash = contentHash,
-            sealHash = sealHash,
-            metadata = EvidenceMetadata(
-                deviceInfo = android.os.Build.MODEL,
-                notes = notes
-            )
+            content = content,
+            contentDescription = contentDescription,
+            location = location,
+            hash = hash,
+            seal = seal,
+            metadata = metadata
         )
 
         case.evidence.add(evidence)
-        Log.i(TAG, "Added evidence to case ${case.caseNumber}: ${evidence.id}")
-        
         return evidence
     }
 
     /**
-     * Generates a sealed forensic PDF report for a case
+     * Verifies the integrity of evidence
+     */
+    fun verifyEvidence(evidence: ForensicEvidence, caseId: String): Boolean {
+        val expectedHash = sealingEngine.generateHash(evidence.content)
+        if (expectedHash != evidence.hash) {
+            return false
+        }
+
+        return sealingEngine.verifySeal(evidence.content, caseId, evidence.seal)
+    }
+
+    /**
+     * Generates a forensic report for a case
      */
     suspend fun generateReport(caseId: String): ForensicResult? {
-        val case = activeCases[caseId] ?: return null
+        val case = cases[caseId] ?: return null
+
+        // Analyze all evidence
+        val findings = analyzeEvidence(case)
+
+        // Calculate integrity score
+        val integrityScore = calculateIntegrityScore(case, findings)
 
         // Generate narrative
-        val narrative = narrativeGenerator.generateNarrative(case)
+        val narrative = narrativeGenerator.generateNarrative(case, findings)
 
-        // Create PDF
-        val reportDir = File(context.filesDir, "reports")
-        if (!reportDir.exists()) {
-            reportDir.mkdirs()
-        }
-        
-        val reportFile = File(reportDir, "SAPS_Report_${case.caseNumber}_${System.currentTimeMillis()}.pdf")
-        
-        pdfGenerator.generateReport(
-            case = case,
-            narrative = narrative,
-            outputFile = reportFile
-        )
+        // Generate PDF report
+        val pdfPath = pdfGenerator.generateReport(case, findings, narrative)
 
-        // Calculate final hash
-        val reportHash = cryptoEngine.calculateHash(reportFile.readBytes())
-
-        // Update case status
-        case.copy(status = CaseStatus.UNDER_REVIEW).also {
-            activeCases[caseId] = it
-        }
-
-        Log.i(TAG, "Generated report for case ${case.caseNumber}: ${reportFile.absolutePath}")
+        // Generate recommendations
+        val recommendations = generateRecommendations(findings)
 
         return ForensicResult(
             caseId = caseId,
             evidenceCount = case.evidence.size,
-            reportPath = reportFile.absolutePath,
-            analysisHash = reportHash
+            integrityScore = integrityScore,
+            findings = findings,
+            recommendations = recommendations,
+            pdfReportPath = pdfPath
         )
     }
 
     /**
-     * Verifies the integrity of a sealed report
+     * Analyzes evidence for contradictions, anomalies, and patterns
      */
-    fun verifyReport(reportPath: String, expectedHash: String): Boolean {
-        val file = File(reportPath)
-        if (!file.exists()) return false
-        
-        val currentHash = cryptoEngine.calculateHash(file.readBytes())
-        val verified = currentHash == expectedHash
-        
-        Log.i(TAG, "Report verification: ${if (verified) "PASSED" else "FAILED"}")
-        return verified
+    private fun analyzeEvidence(case: ForensicCase): List<Finding> {
+        val findings = mutableListOf<Finding>()
+
+        // Check evidence integrity
+        for (evidence in case.evidence) {
+            if (!verifyEvidence(evidence, case.id)) {
+                findings.add(
+                    Finding(
+                        type = FindingType.DATA_INTEGRITY_ISSUE,
+                        severity = Severity.CRITICAL,
+                        description = "Evidence tampered: ${evidence.contentDescription}",
+                        evidenceIds = listOf(evidence.id)
+                    )
+                )
+            }
+        }
+
+        // Check for timeline anomalies
+        val sortedEvidence = case.evidence.sortedBy { it.timestamp }
+        for (i in 1 until sortedEvidence.size) {
+            val gap = java.time.Duration.between(
+                sortedEvidence[i - 1].timestamp,
+                sortedEvidence[i].timestamp
+            ).toDays()
+            
+            if (gap > 30) {
+                findings.add(
+                    Finding(
+                        type = FindingType.EVIDENCE_GAP,
+                        severity = Severity.MEDIUM,
+                        description = "Evidence gap of $gap days detected",
+                        evidenceIds = listOf(sortedEvidence[i - 1].id, sortedEvidence[i].id)
+                    )
+                )
+            }
+        }
+
+        return findings
+    }
+
+    /**
+     * Calculates the integrity score (0-100)
+     */
+    private fun calculateIntegrityScore(case: ForensicCase, findings: List<Finding>): Int {
+        var score = 100
+
+        for (finding in findings) {
+            score -= when (finding.severity) {
+                Severity.CRITICAL -> 25
+                Severity.HIGH -> 15
+                Severity.MEDIUM -> 10
+                Severity.LOW -> 5
+            }
+        }
+
+        return maxOf(0, score)
+    }
+
+    /**
+     * Generates recommendations based on findings
+     */
+    private fun generateRecommendations(findings: List<Finding>): List<String> {
+        val recommendations = mutableListOf<String>()
+
+        if (findings.any { it.type == FindingType.DATA_INTEGRITY_ISSUE }) {
+            recommendations.add("Investigate evidence tampering and secure evidence chain")
+        }
+
+        if (findings.any { it.type == FindingType.EVIDENCE_GAP }) {
+            recommendations.add("Review timeline gaps and collect additional supporting evidence")
+        }
+
+        if (findings.any { it.type == FindingType.CONTRADICTION }) {
+            recommendations.add("Cross-reference contradictory statements with documentary evidence")
+        }
+
+        if (recommendations.isEmpty()) {
+            recommendations.add("Evidence chain is intact. Proceed with case presentation.")
+        }
+
+        return recommendations
     }
 
     /**
      * Closes a case
      */
     fun closeCase(caseId: String): Boolean {
-        val case = activeCases[caseId] ?: return false
-        activeCases[caseId] = case.copy(status = CaseStatus.CLOSED)
-        Log.i(TAG, "Closed case: ${case.caseNumber}")
+        val case = cases[caseId] ?: return false
+        cases[caseId] = case.copy(status = CaseStatus.CLOSED)
         return true
     }
 
     /**
-     * Archives a case
+     * Deletes a case (for stateless operation)
      */
-    fun archiveCase(caseId: String): Boolean {
-        val case = activeCases[caseId] ?: return false
-        activeCases[caseId] = case.copy(status = CaseStatus.ARCHIVED)
-        Log.i(TAG, "Archived case: ${case.caseNumber}")
-        return true
+    fun deleteCase(caseId: String): Boolean {
+        return cases.remove(caseId) != null
     }
 }

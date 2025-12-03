@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <files-path
-        name="forensic_reports"
+        name="reports"
         path="reports/" />
-    <cache-path
-        name="temp_evidence"
-        path="evidence/" />
 </paths>

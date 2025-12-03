@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SAPS-Forensic-Engine"
+rootProject.name = "VerumOmnisForensic"
 include(":app")

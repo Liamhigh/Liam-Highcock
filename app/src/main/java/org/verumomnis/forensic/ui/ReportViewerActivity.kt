@@ -1,125 +1,187 @@
 package org.verumomnis.forensic.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
-import org.verumomnis.forensic.databinding.ActivityReportViewerBinding
+import org.verumomnis.forensic.R
 import java.io.File
 
 /**
  * Report Viewer Activity
  * 
- * Displays PDF forensic reports and allows sharing
- * 
- * @author Liam Highcock
+ * Features:
+ * - Display forensic report summary
+ * - Show integrity score
+ * - Share report via system share intent
+ * - Open PDF in external viewer
  */
 class ReportViewerActivity : AppCompatActivity() {
 
-    companion object {
-        const val EXTRA_REPORT_PATH = "extra_report_path"
-    }
-
-    private lateinit var binding: ActivityReportViewerBinding
+    private lateinit var textReportTitle: TextView
+    private lateinit var textIntegrityScore: TextView
+    private lateinit var textReportPath: TextView
+    private lateinit var btnOpenPdf: Button
+    private lateinit var btnShareReport: Button
+    
     private var reportPath: String? = null
+    private var integrityScore: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityReportViewerBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_report_viewer)
+        
+        reportPath = intent.getStringExtra(ScannerActivity.EXTRA_REPORT_PATH)
+        integrityScore = intent.getIntExtra(ScannerActivity.EXTRA_INTEGRITY_SCORE, 0)
+        
+        setupViews()
+        displayReportInfo()
+    }
 
-        reportPath = intent.getStringExtra(EXTRA_REPORT_PATH)
-        if (reportPath == null) {
-            Toast.makeText(this, "Invalid report", Toast.LENGTH_SHORT).show()
-            finish()
-            return
+    private fun setupViews() {
+        textReportTitle = findViewById(R.id.textReportTitle)
+        textIntegrityScore = findViewById(R.id.textIntegrityScore)
+        textReportPath = findViewById(R.id.textReportPath)
+        btnOpenPdf = findViewById(R.id.btnOpenPdf)
+        btnShareReport = findViewById(R.id.btnShareReport)
+        
+        btnOpenPdf.setOnClickListener {
+            openPdfReport()
         }
-
-        setupToolbar()
-        setupButtons()
-        displayReport()
-    }
-
-    private fun setupToolbar() {
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = "Forensic Report"
-        binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
-    }
-
-    private fun setupButtons() {
-        binding.btnShare.setOnClickListener {
+        
+        btnShareReport.setOnClickListener {
             shareReport()
         }
+    }
 
-        binding.btnOpenExternal.setOnClickListener {
-            openInExternalApp()
+    private fun displayReportInfo() {
+        textReportTitle.text = "Verum Omnis Forensic Report"
+        
+        val scoreCategory = when {
+            integrityScore >= 90 -> "EXCELLENT"
+            integrityScore >= 70 -> "GOOD"
+            integrityScore >= 50 -> "FAIR"
+            integrityScore >= 30 -> "POOR"
+            else -> "CRITICAL"
+        }
+        
+        textIntegrityScore.text = "Integrity Score: $integrityScore/100 ($scoreCategory)"
+        
+        reportPath?.let {
+            textReportPath.text = "Report saved to:\n$it"
+        } ?: run {
+            textReportPath.text = "Report path not available"
         }
     }
 
-    private fun displayReport() {
-        val file = File(reportPath!!)
-        if (!file.exists()) {
-            Toast.makeText(this, "Report file not found", Toast.LENGTH_SHORT).show()
-            finish()
-            return
+    private fun openPdfReport() {
+        reportPath?.let { path ->
+            try {
+                val file = File(path)
+                if (file.exists()) {
+                    val uri = try {
+                        FileProvider.getUriForFile(
+                            this,
+                            "${packageName}.fileprovider",
+                            file
+                        )
+                    } catch (e: SecurityException) {
+                        Toast.makeText(
+                            this,
+                            "Cannot access report file: permission denied",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@let
+                    } catch (e: IllegalArgumentException) {
+                        Toast.makeText(
+                            this,
+                            "Report file is outside accessible paths",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@let
+                    }
+                    
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "application/pdf")
+                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    }
+                    
+                    if (intent.resolveActivity(packageManager) != null) {
+                        startActivity(intent)
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "No PDF viewer installed",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    Toast.makeText(this, "Report file not found", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this,
+                    "Error opening PDF: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
-
-        // Display report info
-        binding.textReportPath.text = "File: ${file.name}"
-        binding.textReportSize.text = "Size: ${file.length() / 1024} KB"
-
-        // Note: For full PDF viewing, you would integrate a PDF viewer library
-        // For now, showing file information and allowing external viewing
-        binding.textReportInfo.text = """
-            SAPS Forensic Evidence Report
-            
-            This PDF report has been cryptographically sealed
-            using SHA-512 hash standard.
-            
-            Tap "Open External" to view the full PDF document.
-            Tap "Share" to send the report to other officers.
-        """.trimIndent()
     }
 
     private fun shareReport() {
-        val file = File(reportPath!!)
-        val uri = FileProvider.getUriForFile(
-            this,
-            "${packageName}.fileprovider",
-            file
-        )
-
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "application/pdf"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "SAPS Forensic Report")
-            putExtra(Intent.EXTRA_TEXT, "Please find the attached forensic evidence report.")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(Intent.createChooser(intent, "Share Report"))
-    }
-
-    private fun openInExternalApp() {
-        val file = File(reportPath!!)
-        val uri = FileProvider.getUriForFile(
-            this,
-            "${packageName}.fileprovider",
-            file
-        )
-
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/pdf")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-
-        try {
-            startActivity(intent)
-        } catch (e: Exception) {
-            Toast.makeText(this, "No PDF viewer app installed", Toast.LENGTH_SHORT).show()
+        reportPath?.let { path ->
+            try {
+                val file = File(path)
+                if (file.exists()) {
+                    val uri = try {
+                        FileProvider.getUriForFile(
+                            this,
+                            "${packageName}.fileprovider",
+                            file
+                        )
+                    } catch (e: SecurityException) {
+                        Toast.makeText(
+                            this,
+                            "Cannot share report file: permission denied",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@let
+                    } catch (e: IllegalArgumentException) {
+                        Toast.makeText(
+                            this,
+                            "Report file is outside accessible paths",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@let
+                    }
+                    
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/pdf"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        putExtra(Intent.EXTRA_SUBJECT, "Verum Omnis Forensic Report")
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            "Forensic report generated by Verum Omnis Engine. " +
+                            "Integrity Score: $integrityScore/100"
+                        )
+                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    }
+                    
+                    startActivity(Intent.createChooser(shareIntent, "Share Report"))
+                } else {
+                    Toast.makeText(this, "Report file not found", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this,
+                    "Error sharing report: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 }
