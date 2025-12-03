@@ -2,7 +2,52 @@
 
 ## Overview
 
-The Verum Omnis Forensic Engine is an offline-first Android application designed for forensic evidence collection, cryptographic sealing, and legal-grade report generation.
+The Verum Omnis Forensic Engine is an offline-first Android application designed for forensic evidence collection, cryptographic sealing, and legal-grade report generation. The app follows a police evidence workflow pattern for investigators.
+
+## Police Evidence Workflow
+
+```
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│   CAMERA     │   │  FILE        │   │  FORENSIC    │   │   SEALED     │
+│   CAPTURE    │──▶│  INTAKE      │──▶│  ENGINE      │──▶│   REPORT     │
+└──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘
+       │                  │                  │                  │
+       ▼                  ▼                  ▼                  ▼
+  Document/Photo    Import Files      Analyze + Seal      PDF + Share
+  + GPS Location    + EXIF Data       B1-B9 Leveler       + Save/View
+```
+
+## Threading Architecture
+
+All heavy processing runs on background threads to prevent UI freezing:
+
+| Operation | Thread | Implementation |
+|-----------|--------|----------------|
+| SHA-512 Hashing | `Dispatchers.IO` | `withContext(Dispatchers.IO)` |
+| HMAC-SHA512 Sealing | `Dispatchers.IO` | `withContext(Dispatchers.IO)` |
+| PDF Generation | `Dispatchers.IO` | `withContext(Dispatchers.IO)` |
+| EXIF Extraction | `Dispatchers.IO` | `EvidenceMetadataExtractor` |
+| File I/O | `Dispatchers.IO` | `withContext(Dispatchers.IO)` |
+| Leveler Analysis | `Dispatchers.Default` | CPU-intensive work |
+| Case Verification | `Dispatchers.IO` | `withContext(Dispatchers.IO)` |
+
+### Lifecycle-Safe Coroutines
+
+All coroutines are scoped to `lifecycleScope` to prevent Activity leaks:
+
+```kotlin
+lifecycleScope.launch {
+    binding.progressBar.visibility = View.VISIBLE
+    try {
+        val result = withContext(Dispatchers.IO) {
+            // Heavy processing here
+        }
+        // Update UI on main thread
+    } finally {
+        binding.progressBar.visibility = View.GONE
+    }
+}
+```
 
 ## Core Components
 
@@ -59,7 +104,19 @@ B1-B9 compliance engine for evidence analysis.
 | B8 | Jurisdictional Compliance Check |
 | B9 | Integrity Index Scoring |
 
-### 4. ForensicPdfGenerator
+### 4. EvidenceMetadataExtractor
+
+Extracts EXIF and file metadata from evidence.
+
+**Capabilities:**
+- Image dimensions and orientation
+- Camera make/model
+- Date taken (EXIF)
+- GPS location (EXIF)
+- Exposure settings (aperture, ISO, shutter)
+- All operations on `Dispatchers.IO`
+
+### 5. ForensicPdfGenerator
 
 Generates legal-grade PDF reports.
 
@@ -72,7 +129,7 @@ Generates legal-grade PDF reports.
 - QR code for verification
 - Chain of custody documentation
 
-### 5. ForensicNarrativeGenerator
+### 6. ForensicNarrativeGenerator
 
 Creates human-readable forensic narratives.
 
@@ -84,17 +141,52 @@ Creates human-readable forensic narratives.
 - Integrity statement
 - Verification instructions
 
+## UI Activities
+
+### MainActivity
+- Case list display
+- Create new case
+- Quick access to reports
+
+### CaseDetailActivity
+- Evidence list
+- Add evidence (scan, photo, note, import)
+- Run B1-B9 analysis
+- Seal case
+- Generate report
+
+### ScannerActivity
+- Camera capture
+- Document/photo modes
+- GPS location capture
+- EXIF metadata extraction
+
+### FileIntakeActivity
+- Document picker
+- Image picker
+- File import from device
+- EXIF/metadata extraction
+
+### ReportViewerActivity
+- Display generated reports
+- Save to device
+- Share via FileProvider
+- Integrity verification
+
 ## Data Flow
 
 ```
 ┌────────────────┐     ┌─────────────────────┐
 │  User Input    │────▶│  ForensicEngine     │
-│  (Camera/Text) │     │  - Create Case      │
+│  (Camera/File) │     │  - Create Case      │
 └────────────────┘     │  - Add Evidence     │
-                       │  - Seal Evidence    │
-                       └─────────┬───────────┘
-                                 │
-                       ┌─────────▼───────────┐
+        │              │  - Seal Evidence    │
+        ▼              └─────────┬───────────┘
+┌────────────────┐               │
+│ MetadataExtract│               │
+│ - EXIF Data    │───────────────┘
+│ - GPS Location │
+└────────────────┘     ┌─────────▼───────────┐
                        │  CryptoSealing      │
                        │  - SHA-512 Hash     │
                        │  - HMAC-SHA512 Seal │
@@ -157,6 +249,17 @@ INDEPENDENCE ──────────▶ No external influence
 - Embedded fonts
 - QR code with verification data
 - Watermark: "VERUM OMNIS FORENSIC SEAL"
+
+## Freeze/Lock Prevention
+
+The following issues have been addressed to prevent UI freezing:
+
+1. **Main Thread Blocking** - All cryptographic operations moved to `Dispatchers.IO`
+2. **File I/O** - All file reads/writes on background thread
+3. **PDF Generation** - Runs entirely on `Dispatchers.IO`
+4. **Bitmap Processing** - QR code generation on background thread
+5. **EXIF Extraction** - Dedicated `EvidenceMetadataExtractor` class with IO threading
+6. **Progress Indicators** - All heavy operations show progress bar
 
 ## Future Enhancements
 
