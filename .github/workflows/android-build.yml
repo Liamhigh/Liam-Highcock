@@ -176,55 +176,46 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Check for Keystore Secret
-      id: check_keystore
-      env:
-        KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+    - name: Validate Signing Secrets
       run: |
-        if [ -n "$KEYSTORE_BASE64" ]; then
-          echo "has_keystore=true" >> $GITHUB_OUTPUT
-        else
-          echo "has_keystore=false" >> $GITHUB_OUTPUT
-          echo "::notice::No production keystore configured. Skipping production release build."
+        if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "::error::KEYSTORE_BASE64 secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.KEYSTORE_PASSWORD }}" ]; then
+          echo "::error::KEYSTORE_PASSWORD secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.KEY_ALIAS }}" ]; then
+          echo "::error::KEY_ALIAS secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.KEY_PASSWORD }}" ]; then
+          echo "::error::KEY_PASSWORD secret is not set"
+          exit 1
         fi
 
-    - name: Decode signing keystore (if provided)
-      if: steps.check_keystore.outputs.has_keystore == 'true'
+    - name: Decode Keystore
       env:
-        KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       run: |
-        echo "$KEYSTORE_BASE64" | base64 -d > ${{ github.workspace }}/keystore.jks
+        echo "$KEYSTORE_BASE64" | base64 -d > ${{ github.workspace }}/release.keystore
 
-    - name: Create keystore.properties
-      if: steps.check_keystore.outputs.has_keystore == 'true'
+    - name: Build Signed Release APK
       env:
-        STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      run: |
-        # Use restricted permissions for sensitive file
-        umask 077
-        cat > keystore.properties <<EOF
-        storeFile=${{ github.workspace }}/keystore.jks
-        storePassword=$STORE_PASSWORD
-        keyAlias=$KEY_ALIAS
-        keyPassword=$KEY_PASSWORD
-        EOF
-
-    - name: Build Production-Signed Release APK
-      if: steps.check_keystore.outputs.has_keystore == 'true'
+        KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: ./gradlew assembleRelease --stacktrace
 
-    - name: Upload Production-Signed Release APK
-      if: steps.check_keystore.outputs.has_keystore == 'true'
+    - name: Upload Signed Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: verum-omnis-forensic-release-production
+        name: verum-omnis-forensic-release
         path: app/build/outputs/apk/release/app-release.apk
         retention-days: 90
 
-    - name: Clean up keystore and properties
+    - name: Clean up Keystore
       if: always()
-      run: |
-        rm -f ${{ github.workspace }}/keystore.jks
-        rm -f keystore.properties
+      run: rm -f ${{ github.workspace }}/release.keystore

@@ -74,68 +74,23 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 
 The APK will be output to `app/build/outputs/apk/`
 
-### Download Signed APKs from GitHub Actions
+### CI/CD Signed Release Builds
 
-You can download pre-built signed APKs directly from GitHub Actions:
+The GitHub Actions workflow automatically builds and signs release APKs. To enable signed builds, configure the following repository secrets:
 
-1. Go to the **Actions** tab in this repository
-2. Click on **Android CI/CD** workflow
-3. Select a successful workflow run
-4. Download the artifacts:
-   - **verum-omnis-forensic-debug** - Debug APK (automatically signed with debug keystore)
-   - **verum-omnis-forensic-release-debug-signed** - Release APK signed with debug keystore (for testing)
-   - **verum-omnis-forensic-release-production** - Production release APK (when production keystore secrets are configured)
+| Secret | Description |
+|--------|-------------|
+| `KEYSTORE_BASE64` | Base64-encoded keystore file |
+| `KEYSTORE_PASSWORD` | Password for the keystore |
+| `KEY_ALIAS` | Alias of the signing key |
+| `KEY_PASSWORD` | Password for the signing key |
 
-#### Configuring Production APK Signing
+To generate the base64-encoded keystore:
+```bash
+base64 -i your-keystore.jks -o keystore-base64.txt
+```
 
-To enable production-signed release APKs, you need to configure the following GitHub repository secrets:
-
-1. **Generate a keystore** (if you don't have one):
-   ```bash
-   keytool -genkeypair -v \
-     -keystore my-release-key.keystore \
-     -storepass YOUR_STORE_PASSWORD \
-     -alias your-key-alias \
-     -keypass YOUR_KEY_PASSWORD \
-     -keyalg RSA \
-     -keysize 2048 \
-     -validity 10000 \
-     -dname "CN=Your Name, OU=Your Unit, O=Your Org, L=City, S=State, C=XX"
-   ```
-
-2. **Encode the keystore to Base64**:
-   ```bash
-   base64 -i my-release-key.keystore | pbcopy  # macOS
-   # or
-   base64 my-release-key.keystore > keystore_base64.txt  # Linux
-   ```
-
-3. **Add the following secrets** in GitHub (Settings → Secrets and variables → Actions → New repository secret):
-   | Secret Name | Description |
-   |-------------|-------------|
-   | `KEYSTORE_BASE64` | Base64-encoded keystore file content |
-   | `KEYSTORE_PASSWORD` | Password for the keystore |
-   | `KEY_ALIAS` | Alias of the key in the keystore |
-   | `KEY_PASSWORD` | Password for the key |
-
-Once configured, production-signed APKs will be automatically generated on pushes to the `main` branch.
-
-#### Manual Workflow Trigger
-
-You can also manually trigger a build to generate APKs:
-
-1. Go to **Actions** → **Android CI/CD**
-2. Click **Run workflow**
-3. Select the build type (debug, release, or both)
-4. Click **Run workflow**
-5. Once complete, download the APK artifacts
-
-#### Installing on Your Phone
-
-1. Download the APK file from the workflow artifacts
-2. On your Android phone, enable **Install from Unknown Sources** in Settings
-3. Transfer the APK to your phone (via USB, email, or cloud storage)
-4. Tap the APK file to install
+Copy the contents of `keystore-base64.txt` to the `KEYSTORE_BASE64` secret.
 
 ## 📱 Usage
 

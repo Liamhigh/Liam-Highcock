@@ -37,43 +37,16 @@ android {
 
     signingConfigs {
         create("release") {
-            // First try to load from keystore.properties (CI creates this file)
-            if (keystorePropertiesFile.exists()) {
-                val storeFilePath = keystoreProperties.getProperty("storeFile")
-                if (storeFilePath != null) {
-                    val keystoreFile = file(storeFilePath)
-                    if (keystoreFile.exists()) {
-                        storeFile = keystoreFile
-                        storePassword = keystoreProperties.getProperty("storePassword")
-                        keyAlias = keystoreProperties.getProperty("keyAlias")
-                        keyPassword = keystoreProperties.getProperty("keyPassword")
-                    } else {
-                        logger.warn("Keystore file not found at: $storeFilePath - release APK will use debug signing")
-                    }
-                } else {
-                    logger.warn("storeFile not specified in keystore.properties - release APK will use debug signing")
-                }
-            } else {
-                // Fall back to environment variables for backward compatibility
-                val keystorePath = System.getenv("KEYSTORE_PATH")
-                val keystorePass = System.getenv("KEYSTORE_PASSWORD")
-                val keyAliasValue = System.getenv("KEY_ALIAS")
-                val keyPass = System.getenv("KEY_PASSWORD")
-                
-                // Only configure signing if all required environment variables are present
-                if (keystorePath != null && keystorePass != null && keyAliasValue != null && keyPass != null) {
-                    val keystoreFile = file(keystorePath)
-                    if (keystoreFile.exists()) {
-                        storeFile = keystoreFile
-                        storePassword = keystorePass
-                        keyAlias = keyAliasValue
-                        keyPassword = keyPass
-                    } else {
-                        logger.warn("Keystore file not found at: $keystorePath - release APK will be unsigned")
-                    }
-                } else {
-                    logger.warn("Signing environment variables not set - release APK will be unsigned")
-                }
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            val keystorePasswordEnv = System.getenv("KEYSTORE_PASSWORD")
+            val keyAliasEnv = System.getenv("KEY_ALIAS")
+            val keyPasswordEnv = System.getenv("KEY_PASSWORD")
+
+            if (keystorePath != null && keystorePasswordEnv != null && keyAliasEnv != null && keyPasswordEnv != null) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePasswordEnv
+                keyAlias = keyAliasEnv
+                keyPassword = keyPasswordEnv
             }
         }
     }
@@ -85,17 +58,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Apply signing config - use release if fully configured, otherwise fall back to debug
-            val releaseSigningConfig = signingConfigs.getByName("release")
-            if (releaseSigningConfig.storeFile != null && 
-                releaseSigningConfig.storePassword != null &&
-                releaseSigningConfig.keyAlias != null &&
-                releaseSigningConfig.keyPassword != null) {
+            val releaseSigningConfig = signingConfigs.findByName("release")
+            if (releaseSigningConfig?.storeFile != null) {
                 signingConfig = releaseSigningConfig
-            } else {
-                // Fall back to debug signing to ensure APK is always signed
-                signingConfig = signingConfigs.getByName("debug")
-                logger.warn("Release signing not configured - using debug signing config")
             }
         }
         debug {
