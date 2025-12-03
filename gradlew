@@ -5,12 +5,16 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 APP_HOME="$SCRIPT_DIR"
 
-# Attempt to set JAVA_HOME if not set
-if [ -z "$JAVA_HOME" ]; then
-    if [ -x "/usr/libexec/java_home" ]; then
-        JAVA_HOME="$(/usr/libexec/java_home 2>/dev/null)"
-        export JAVA_HOME
-    fi
+# Set default values
+DEFAULT_JVM_OPTS="-Xmx64m -Xms64m"
+APP_NAME="Gradle"
+APP_BASE_NAME=$(basename "$0")
+
+# Check for JAVA_HOME
+if [ -n "$JAVA_HOME" ] ; then
+    JAVACMD="$JAVA_HOME/bin/java"
+else
+    JAVACMD="java"
 fi
 
 CLASSPATH="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
