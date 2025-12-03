@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
@@ -11,6 +12,13 @@ val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+
+// Load keystore properties created by CI at runtime
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -29,17 +37,21 @@ android {
 
     signingConfigs {
         create("release") {
-            // Prefer keystore.properties file (created by CI) over environment variables
+            // First try to load from keystore.properties (CI creates this file)
             if (keystorePropertiesFile.exists()) {
-                val storeFilePath = keystoreProperties.getProperty("storeFile") ?: "keystore.jks"
-                val keystoreFile = rootProject.file(storeFilePath)
-                if (keystoreFile.exists()) {
-                    storeFile = keystoreFile
-                    storePassword = keystoreProperties.getProperty("storePassword")
-                    keyAlias = keystoreProperties.getProperty("keyAlias")
-                    keyPassword = keystoreProperties.getProperty("keyPassword")
+                val storeFilePath = keystoreProperties.getProperty("storeFile")
+                if (storeFilePath != null) {
+                    val keystoreFile = file(storeFilePath)
+                    if (keystoreFile.exists()) {
+                        storeFile = keystoreFile
+                        storePassword = keystoreProperties.getProperty("storePassword")
+                        keyAlias = keystoreProperties.getProperty("keyAlias")
+                        keyPassword = keystoreProperties.getProperty("keyPassword")
+                    } else {
+                        logger.warn("Keystore file not found at: $storeFilePath - release APK will use debug signing")
+                    }
                 } else {
-                    logger.warn("Keystore file not found at: $storeFilePath - release APK will be unsigned")
+                    logger.warn("storeFile not specified in keystore.properties - release APK will use debug signing")
                 }
             } else {
                 // Fall back to environment variables for backward compatibility
@@ -160,7 +172,7 @@ dependencies {
     // QR Code generation
     implementation("com.google.zxing:core:3.5.2")
 
-    // SLF4J binding for Android (required by iText7, prevents R8 missing class errors)
+    // SLF4J Android binding for logging support (required by iText7)
     implementation("org.slf4j:slf4j-android:1.7.36")
 
     // Testing
