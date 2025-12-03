@@ -160,7 +160,7 @@ dependencies {
     // QR Code generation
     implementation("com.google.zxing:core:3.5.2")
 
-    // SLF4J binding for Android (fixes R8 missing StaticLoggerBinder)
+    // SLF4J binding for Android (required by iText7, prevents R8 missing class errors)
     implementation("org.slf4j:slf4j-android:1.7.36")
 
     // Testing
