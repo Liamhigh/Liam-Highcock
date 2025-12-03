@@ -137,6 +137,10 @@ dependencies {
     // PDF Processing (offline-capable) - using iText for Android
     implementation("com.itextpdf:itext7-core:7.2.5")
 
+    // SLF4J Android binding - required for iText7 which uses SLF4J API
+    // This provides StaticLoggerBinder at build time for R8 minification
+    implementation("org.slf4j:slf4j-android:1.7.36")
+
     // Cryptography
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
