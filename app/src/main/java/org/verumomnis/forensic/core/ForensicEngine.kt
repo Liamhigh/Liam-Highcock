@@ -1,432 +1,234 @@
 package org.verumomnis.forensic.core
 
 import android.content.Context
-import android.os.Build
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.verumomnis.forensic.crypto.CryptographicSealingEngine
-import org.verumomnis.forensic.database.ForensicRepository
+import org.verumomnis.forensic.location.ForensicLocationService
 import org.verumomnis.forensic.pdf.ForensicPdfGenerator
 import org.verumomnis.forensic.report.ForensicNarrativeGenerator
-import java.io.File
-import java.security.MessageDigest
+import java.time.LocalDateTime
 import java.util.UUID
 
 /**
- * Verum Omnis Forensic Engine
+ * Core Forensic Engine
  * 
- * Core engine for forensic evidence collection, sealing, and reporting.
- * Operates in offline-first mode with local persistence.
+ * Implements the Verum Omnis forensic collection and analysis system.
+ * All operations are performed offline with no external data transmission.
  * 
  * Features:
- * - Cryptographic Evidence Sealing (SHA-512 + HMAC-SHA512)
- * - GPS Location Capture
- * - AI-Readable PDF Reports
- * - Tamper Detection
- * - Chain of Custody Verification
- * - Local Database Persistence
- * 
- * @author Liam Highcock
- * @version 1.1.0
+ * - SHA-512 evidence hashing
+ * - HMAC-SHA512 cryptographic sealing
+ * - GPS location tagging
+ * - PDF report generation with watermarks and QR codes
+ * - Tamper detection
+ * - Legal-grade admissibility standards
  */
 class ForensicEngine(private val context: Context) {
 
-    private val cryptoEngine = CryptographicSealingEngine()
+    private val sealingEngine = CryptographicSealingEngine()
+    private val locationService = ForensicLocationService(context)
     private val pdfGenerator = ForensicPdfGenerator(context)
     private val narrativeGenerator = ForensicNarrativeGenerator()
-    private val repository = ForensicRepository(context)
-    private val scope = CoroutineScope(Dispatchers.IO)
-    
-    // In-memory cache for active cases
-    private val activeCases = mutableMapOf<String, ForensicCase>()
-    
-    init {
-        // Load persisted cases on initialization
-        scope.launch {
-            try {
-                loadPersistedCases()
-            } catch (e: Exception) {
-                // Log error but don't crash - empty case list is acceptable fallback
-                android.util.Log.e("ForensicEngine", "Failed to load persisted cases", e)
-            }
-        }
-    }
-    
-    private suspend fun loadPersistedCases() {
-        val cases = repository.getAllCases()
-        cases.forEach { case ->
-            activeCases[case.id] = case
-        }
-    }
-    
+
+    private val cases = mutableMapOf<String, ForensicCase>()
+
     /**
-     * Get all cases as a Flow for reactive UI updates
+     * Creates a new forensic case
      */
-    fun getAllCasesFlow(): Flow<List<ForensicCase>> {
-        return repository.getAllCasesFlow()
-    }
-    
-    /**
-     * Create a new forensic case
-     */
-    fun createCase(name: String, description: String = ""): ForensicCase {
-        val caseId = generateCaseId()
-        val now = System.currentTimeMillis()
-        
-        val newCase = ForensicCase(
-            id = caseId,
+    fun createCase(name: String, description: String = "", jurisdiction: String = "UAE"): ForensicCase {
+        val case = ForensicCase(
             name = name,
             description = description,
-            createdAt = now,
-            modifiedAt = now,
-            evidence = mutableListOf(),
-            status = CaseStatus.OPEN
+            jurisdiction = jurisdiction
         )
-        
-        activeCases[caseId] = newCase
-        
-        // Persist to database
-        scope.launch {
-            repository.saveCase(newCase)
-        }
-        
-        return newCase
+        cases[case.id] = case
+        return case
     }
-    
+
     /**
-     * Add evidence to an existing case
+     * Gets a case by ID
      */
-    fun addEvidence(
+    fun getCase(caseId: String): ForensicCase? = cases[caseId]
+
+    /**
+     * Gets all cases
+     */
+    fun getAllCases(): List<ForensicCase> = cases.values.toList()
+
+    /**
+     * Adds evidence to a case with cryptographic sealing
+     */
+    suspend fun addEvidence(
         caseId: String,
         type: EvidenceType,
         content: ByteArray,
-        mimeType: String,
-        filename: String? = null,
-        location: ForensicLocation? = null
+        contentDescription: String,
+        metadata: EvidenceMetadata = EvidenceMetadata()
     ): ForensicEvidence? {
-        val forensicCase = activeCases[caseId] ?: return null
-        
-        if (forensicCase.status != CaseStatus.OPEN) {
-            return null // Cannot add evidence to sealed/archived cases
-        }
-        
-        val evidenceId = generateEvidenceId()
-        val now = System.currentTimeMillis()
-        val contentHash = cryptoEngine.calculateHash(content)
-        
+        val case = cases[caseId] ?: return null
+
+        // Get current location if available
+        val location = locationService.getCurrentLocation()
+
+        // Generate hash and seal
+        val hash = sealingEngine.generateHash(content)
+        val seal = sealingEngine.generateSeal(content, caseId)
+
         val evidence = ForensicEvidence(
-            id = evidenceId,
             type = type,
             content = content,
-            contentHash = contentHash,
-            mimeType = mimeType,
-            timestamp = now,
+            contentDescription = contentDescription,
             location = location,
-            metadata = EvidenceMetadata(
-                filename = filename,
-                fileSize = content.size.toLong(),
-                createdAt = now,
-                modifiedAt = null,
-                author = null,
-                deviceInfo = getDeviceInfo(),
-                appVersion = VerumOmnisApplication.VERSION
-            ),
-            sealed = false
+            hash = hash,
+            seal = seal,
+            metadata = metadata
         )
-        
-        forensicCase.evidence.add(evidence)
-        
-        // Persist evidence and update case
-        scope.launch {
-            repository.saveEvidence(caseId, evidence)
-            repository.updateCase(forensicCase.copy(modifiedAt = now))
-        }
-        
+
+        case.evidence.add(evidence)
         return evidence
     }
-    
+
     /**
-     * Seal a piece of evidence with cryptographic signature
+     * Verifies the integrity of evidence
      */
-    fun sealEvidence(caseId: String, evidenceId: String): ForensicEvidence? {
-        val forensicCase = activeCases[caseId] ?: return null
-        val evidence = forensicCase.evidence.find { it.id == evidenceId } ?: return null
-        
-        if (evidence.sealed) {
-            return evidence // Already sealed
+    fun verifyEvidence(evidence: ForensicEvidence, caseId: String): Boolean {
+        val expectedHash = sealingEngine.generateHash(evidence.content)
+        if (expectedHash != evidence.hash) {
+            return false
         }
-        
-        val sealHash = cryptoEngine.sealEvidence(evidence)
-        
-        // Create sealed evidence (immutable)
-        val sealedEvidence = evidence.copy(
-            sealed = true,
-            sealHash = sealHash
-        )
-        
-        // Replace in list
-        val index = forensicCase.evidence.indexOfFirst { it.id == evidenceId }
-        if (index >= 0) {
-            forensicCase.evidence[index] = sealedEvidence
-        }
-        
-        // Persist update
-        scope.launch {
-            repository.updateEvidence(caseId, sealedEvidence)
-        }
-        
-        return sealedEvidence
+
+        return sealingEngine.verifySeal(evidence.content, caseId, evidence.seal)
     }
-    
+
     /**
-     * Seal entire case
+     * Generates a forensic report for a case
      */
-    fun sealCase(caseId: String): ForensicCase? {
-        val forensicCase = activeCases[caseId] ?: return null
-        
-        if (forensicCase.status != CaseStatus.OPEN) {
-            return forensicCase
-        }
-        
-        // Seal all unsealed evidence
-        forensicCase.evidence.forEachIndexed { index, evidence ->
-            if (!evidence.sealed) {
-                val sealHash = cryptoEngine.sealEvidence(evidence)
-                forensicCase.evidence[index] = evidence.copy(
-                    sealed = true,
-                    sealHash = sealHash
+    suspend fun generateReport(caseId: String): ForensicResult? {
+        val case = cases[caseId] ?: return null
+
+        // Analyze all evidence
+        val findings = analyzeEvidence(case)
+
+        // Calculate integrity score
+        val integrityScore = calculateIntegrityScore(case, findings)
+
+        // Generate narrative
+        val narrative = narrativeGenerator.generateNarrative(case, findings)
+
+        // Generate PDF report
+        val pdfPath = pdfGenerator.generateReport(case, findings, narrative)
+
+        // Generate recommendations
+        val recommendations = generateRecommendations(findings)
+
+        return ForensicResult(
+            caseId = caseId,
+            evidenceCount = case.evidence.size,
+            integrityScore = integrityScore,
+            findings = findings,
+            recommendations = recommendations,
+            pdfReportPath = pdfPath
+        )
+    }
+
+    /**
+     * Analyzes evidence for contradictions, anomalies, and patterns
+     */
+    private fun analyzeEvidence(case: ForensicCase): List<Finding> {
+        val findings = mutableListOf<Finding>()
+
+        // Check evidence integrity
+        for (evidence in case.evidence) {
+            if (!verifyEvidence(evidence, case.id)) {
+                findings.add(
+                    Finding(
+                        type = FindingType.DATA_INTEGRITY_ISSUE,
+                        severity = Severity.CRITICAL,
+                        description = "Evidence tampered: ${evidence.contentDescription}",
+                        evidenceIds = listOf(evidence.id)
+                    )
                 )
             }
         }
-        
-        // Calculate case integrity hash
-        val integrityHash = cryptoEngine.calculateCaseIntegrityHash(forensicCase)
-        
-        // Update case status
-        val sealedCase = forensicCase.copy(
-            status = CaseStatus.SEALED,
-            modifiedAt = System.currentTimeMillis(),
-            integrityHash = integrityHash
-        )
-        
-        activeCases[caseId] = sealedCase
-        
-        // Persist update
-        scope.launch {
-            repository.updateCase(sealedCase)
-            sealedCase.evidence.forEach { ev ->
-                repository.updateEvidence(caseId, ev)
+
+        // Check for timeline anomalies
+        val sortedEvidence = case.evidence.sortedBy { it.timestamp }
+        for (i in 1 until sortedEvidence.size) {
+            val gap = java.time.Duration.between(
+                sortedEvidence[i - 1].timestamp,
+                sortedEvidence[i].timestamp
+            ).toDays()
+            
+            if (gap > 30) {
+                findings.add(
+                    Finding(
+                        type = FindingType.EVIDENCE_GAP,
+                        severity = Severity.MEDIUM,
+                        description = "Evidence gap of $gap days detected",
+                        evidenceIds = listOf(sortedEvidence[i - 1].id, sortedEvidence[i].id)
+                    )
+                )
             }
         }
-        
-        return sealedCase
+
+        return findings
     }
-    
+
     /**
-     * Generate forensic PDF report
+     * Calculates the integrity score (0-100)
      */
-    fun generateReport(caseId: String): ForensicReport? {
-        val forensicCase = activeCases[caseId] ?: return null
-        
-        // Seal case if not already sealed
-        if (forensicCase.status == CaseStatus.OPEN) {
-            sealCase(caseId)
+    private fun calculateIntegrityScore(case: ForensicCase, findings: List<Finding>): Int {
+        var score = 100
+
+        for (finding in findings) {
+            score -= when (finding.severity) {
+                Severity.CRITICAL -> 25
+                Severity.HIGH -> 15
+                Severity.MEDIUM -> 10
+                Severity.LOW -> 5
+            }
         }
-        
-        val sealedCase = activeCases[caseId] ?: return null
-        
-        // Generate narrative
-        val narrative = narrativeGenerator.generateNarrative(sealedCase)
-        
-        // Generate evidence summaries
-        val evidenceSummary = sealedCase.evidence.map { evidence ->
-            EvidenceSummary(
-                evidenceId = evidence.id,
-                type = evidence.type,
-                hash = evidence.contentHash,
-                timestamp = evidence.timestamp,
-                description = "${evidence.type.name}: ${evidence.metadata.filename ?: "Unnamed"}"
-            )
-        }
-        
-        // Get APK hash for chain of trust
-        val apkHash = getApkHash()
-        
-        // Generate report ID and hash
-        val reportId = generateReportId()
-        val reportTimestamp = System.currentTimeMillis()
-        
-        // Generate QR code data
-        val qrCodeData = buildQrCodeData(
-            reportId = reportId,
-            caseId = caseId,
-            integrityHash = sealedCase.integrityHash ?: "",
-            apkHash = apkHash,
-            timestamp = reportTimestamp
-        )
-        
-        // Generate PDF
-        val pdfBytes = pdfGenerator.generateReport(
-            forensicCase = sealedCase,
-            narrative = narrative,
-            evidenceSummary = evidenceSummary,
-            qrCodeData = qrCodeData,
-            apkHash = apkHash
-        )
-        
-        // Calculate final integrity hash
-        val integrityHash = cryptoEngine.calculateHash(pdfBytes)
-        
-        val report = ForensicReport(
-            id = reportId,
-            caseId = caseId,
-            caseName = sealedCase.name,
-            generatedAt = reportTimestamp,
-            narrative = narrative,
-            evidenceSummary = evidenceSummary,
-            integrityHash = integrityHash,
-            apkHash = apkHash,
-            qrCodeData = qrCodeData,
-            pdfBytes = pdfBytes
-        )
-        
-        // Update case status
-        val reportedCase = sealedCase.copy(
-            status = CaseStatus.REPORTED,
-            modifiedAt = reportTimestamp
-        )
-        activeCases[caseId] = reportedCase
-        
-        // Persist update
-        scope.launch {
-            repository.updateCase(reportedCase)
-        }
-        
-        return report
+
+        return maxOf(0, score)
     }
-    
+
     /**
-     * Export case to file
+     * Generates recommendations based on findings
      */
-    suspend fun exportCase(caseId: String): File? {
-        val exportDir = File(context.getExternalFilesDir(null), "exports").apply { mkdirs() }
-        return repository.exportCase(caseId, exportDir)
+    private fun generateRecommendations(findings: List<Finding>): List<String> {
+        val recommendations = mutableListOf<String>()
+
+        if (findings.any { it.type == FindingType.DATA_INTEGRITY_ISSUE }) {
+            recommendations.add("Investigate evidence tampering and secure evidence chain")
+        }
+
+        if (findings.any { it.type == FindingType.EVIDENCE_GAP }) {
+            recommendations.add("Review timeline gaps and collect additional supporting evidence")
+        }
+
+        if (findings.any { it.type == FindingType.CONTRADICTION }) {
+            recommendations.add("Cross-reference contradictory statements with documentary evidence")
+        }
+
+        if (recommendations.isEmpty()) {
+            recommendations.add("Evidence chain is intact. Proceed with case presentation.")
+        }
+
+        return recommendations
     }
-    
+
     /**
-     * Verify evidence integrity
+     * Closes a case
      */
-    fun verifyEvidence(evidence: ForensicEvidence): Boolean {
-        if (!evidence.sealed || evidence.sealHash == null) {
-            return false
-        }
-        
-        val computedHash = cryptoEngine.calculateHash(evidence.content)
-        return computedHash == evidence.contentHash
-    }
-    
-    /**
-     * Verify case integrity
-     */
-    fun verifyCase(caseId: String): Boolean {
-        val forensicCase = activeCases[caseId] ?: return false
-        
-        if (forensicCase.integrityHash == null) {
-            return false
-        }
-        
-        val computedHash = cryptoEngine.calculateCaseIntegrityHash(forensicCase)
-        return computedHash == forensicCase.integrityHash
-    }
-    
-    /**
-     * Get case by ID
-     */
-    fun getCase(caseId: String): ForensicCase? = activeCases[caseId]
-    
-    /**
-     * Get all active cases
-     */
-    fun getAllCases(): List<ForensicCase> = activeCases.values.toList()
-    
-    /**
-     * Delete case (only if not sealed)
-     */
-    fun deleteCase(caseId: String): Boolean {
-        val forensicCase = activeCases[caseId] ?: return false
-        
-        if (forensicCase.status != CaseStatus.OPEN) {
-            return false // Cannot delete sealed cases
-        }
-        
-        activeCases.remove(caseId)
-        
-        // Delete from database
-        scope.launch {
-            repository.deleteCase(caseId)
-        }
-        
+    fun closeCase(caseId: String): Boolean {
+        val case = cases[caseId] ?: return false
+        cases[caseId] = case.copy(status = CaseStatus.CLOSED)
         return true
     }
-    
-    // Private helper methods
-    
-    private fun generateCaseId(): String = "CASE-${UUID.randomUUID().toString().take(8).uppercase()}"
-    
-    private fun generateEvidenceId(): String = "EV-${UUID.randomUUID().toString().take(8).uppercase()}"
-    
-    private fun generateReportId(): String = "RPT-${UUID.randomUUID().toString().take(8).uppercase()}"
-    
-    private fun getDeviceInfo(): String {
-        return "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
-    }
-    
-    private fun getApkHash(): String {
-        return try {
-            val packageInfo = context.packageManager.getPackageInfo(
-                context.packageName,
-                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
-            )
-            
-            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.signingInfo?.apkContentsSigners
-            } else {
-                @Suppress("DEPRECATION")
-                packageInfo.signatures
-            }
-            
-            if (signatures != null && signatures.isNotEmpty()) {
-                val signature = signatures[0]
-                val md = MessageDigest.getInstance("SHA-512")
-                md.update(signature.toByteArray())
-                md.digest().joinToString("") { "%02x".format(it) }
-            } else {
-                "UNSIGNED_DEBUG_BUILD"
-            }
-        } catch (e: Exception) {
-            "APK_HASH_ERROR"
-        }
-    }
-    
-    private fun buildQrCodeData(
-        reportId: String,
-        caseId: String,
-        integrityHash: String,
-        apkHash: String,
-        timestamp: Long
-    ): String {
-        return """
-            VERUM_OMNIS_FORENSIC_REPORT
-            REPORT_ID:$reportId
-            CASE_ID:$caseId
-            INTEGRITY_HASH:${integrityHash.take(32)}
-            APK_HASH:${apkHash.take(32)}
-            TIMESTAMP:$timestamp
-            VERSION:${VerumOmnisApplication.VERSION}
-        """.trimIndent()
+
+    /**
+     * Deletes a case (for stateless operation)
+     */
+    fun deleteCase(caseId: String): Boolean {
+        return cases.remove(caseId) != null
     }
 }

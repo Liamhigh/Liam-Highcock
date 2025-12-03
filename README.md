@@ -1,23 +1,21 @@
 # Verum Omnis Forensic Engine
 
-![Verum Omnis Logo](main-logo.png)
-
-**Offline Android Forensic Engine with Cryptographic Sealing**
-
 An Android application for collecting, sealing, and reporting forensic evidence in accordance with the Verum Omnis Constitutional Governance Layer.
 
-## 🎯 Features
+![Build Status](https://github.com/Liamhigh/Liam-Highcock/actions/workflows/build-apk.yml/badge.svg)
 
-- 📸 **Document Capture** - Camera-based evidence collection
-- 🔐 **Cryptographic Sealing** - SHA-512 hashing with HMAC-SHA512 for tamper detection
-- 📍 **GPS Location Capture** - Automatic geolocation of evidence at collection time
-- 📄 **AI-Readable PDF Reports** - Structured forensic narratives following legal admissibility standards
-- 🔒 **Offline-First Design** - No cloud logging, no telemetry, airgap ready
-- 📊 **B1-B9 Leveler Compliance** - Complete contradiction detection and integrity scoring
+## Features
 
-## 🏛️ Constitutional Governance
+- **Cryptographic Evidence Sealing**: SHA-512 hashing with HMAC-SHA512 sealing for tamper detection
+- **GPS Location Capture**: Automatic geolocation of evidence at collection time
+- **AI-Readable PDF Reports**: Structured forensic narratives following legal admissibility standards
+- **Offline-First Design**: No cloud logging, no telemetry, airgap ready
+- **Stateless Operation**: No persistent user data beyond case files
+- **B1-B9 Compliance**: Full Leveler Engine for contradiction and anomaly detection
 
-This application operates under the **Verum Omnis Constitution Mode**, which enforces:
+## Constitutional Governance
+
+This application operates under the Verum Omnis Constitution Mode, which enforces:
 
 ### Core Principles
 
@@ -37,7 +35,7 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 |----------|-------|
 | Hash Standard | SHA-512 |
 | PDF Standard | PDF 1.7 |
-| Watermark | VERUM OMNIS FORENSIC SEAL |
+| Watermark | VERUM OMNIS 3D LOGO CENTERED |
 | QR Code Inclusion | Yes |
 | Tamper Detection | Mandatory |
 | Admissibility Standard | Legal-grade |
@@ -52,7 +50,7 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 | No Telemetry | ✅ True |
 | Airgap Ready | ✅ True |
 
-## 🚀 Building
+## Building
 
 ### Prerequisites
 
@@ -74,102 +72,22 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 
 The APK will be output to `app/build/outputs/apk/`
 
-### Download Signed APKs from GitHub Actions
-
-You can download pre-built signed APKs directly from GitHub Actions:
-
-1. Go to the **Actions** tab in this repository
-2. Click on **Android CI/CD** workflow
-3. Select a successful workflow run
-4. Download the artifacts:
-   - **verum-omnis-forensic-debug** - Debug APK (automatically signed with debug keystore)
-   - **verum-omnis-forensic-release-debug-signed** - Release APK signed with debug keystore (for testing)
-   - **verum-omnis-forensic-release-production** - Production release APK (when production keystore secrets are configured)
-
-#### Configuring Production APK Signing
-
-To enable production-signed release APKs, you need to configure the following GitHub repository secrets:
-
-1. **Generate a keystore** (if you don't have one):
-   ```bash
-   keytool -genkeypair -v \
-     -keystore my-release-key.keystore \
-     -storepass YOUR_STORE_PASSWORD \
-     -alias your-key-alias \
-     -keypass YOUR_KEY_PASSWORD \
-     -keyalg RSA \
-     -keysize 2048 \
-     -validity 10000 \
-     -dname "CN=Your Name, OU=Your Unit, O=Your Org, L=City, S=State, C=XX"
-   ```
-
-2. **Encode the keystore to Base64**:
-   ```bash
-   base64 -i my-release-key.keystore | pbcopy  # macOS
-   # or
-   base64 my-release-key.keystore > keystore_base64.txt  # Linux
-   ```
-
-3. **Add the following secrets** in GitHub (Settings → Secrets and variables → Actions → New repository secret):
-   | Secret Name | Description |
-   |-------------|-------------|
-   | `KEYSTORE_BASE64` | Base64-encoded keystore file content |
-   | `KEYSTORE_PASSWORD` | Password for the keystore |
-   | `KEY_ALIAS` | Alias of the key in the keystore |
-   | `KEY_PASSWORD` | Password for the key |
-
-Once configured, production-signed APKs will be automatically generated on pushes to the `main` branch.
-
-#### Manual Workflow Trigger
-
-You can also manually trigger a build to generate APKs:
-
-1. Go to **Actions** → **Android CI/CD**
-2. Click **Run workflow**
-3. Select the build type (debug, release, or both)
-4. Click **Run workflow**
-5. Once complete, download the APK artifacts
-
-#### Installing on Your Phone
-
-1. Download the APK file from the workflow artifacts
-2. On your Android phone, enable **Install from Unknown Sources** in Settings
-3. Transfer the APK to your phone (via USB, email, or cloud storage)
-4. Tap the APK file to install
-
-## 📱 Usage
+## Usage
 
 1. **Create a Case** - Start by creating a new forensic case with a descriptive name
 2. **Add Evidence** - Use the scanner to capture documents, photos, or text notes
-3. **Seal Evidence** - Each piece of evidence is cryptographically sealed with SHA-512
-4. **Generate Report** - Create a forensic PDF report with full evidence chain
-5. **View/Share Reports** - Access and share sealed forensic reports
+3. **Generate Report** - Create a forensic PDF report with full evidence chain
+4. **View/Share Reports** - Access and share sealed forensic reports
 
 ### Evidence Types
 
 - 📄 Documents (scanned)
 - 📷 Photos (captured)
 - 📝 Text (notes and observations)
-- 🎤 Audio (coming soon)
-- 🎬 Video (coming soon)
+- 🎵 Audio (coming soon)
+- 🎥 Video (coming soon)
 
-## 🔍 B1-B9 Leveler Engine
-
-The Leveler Engine provides comprehensive evidence analysis:
-
-| Code | Feature | Description |
-|------|---------|-------------|
-| B1 | Event Chronology | Timeline reconstruction from evidence |
-| B2 | Contradiction Detection | Statement and evidence conflict identification |
-| B3 | Evidence Gap Analysis | Missing evidence detection |
-| B4 | Timeline Manipulation | Backdating and edit detection |
-| B5 | Behavioral Patterns | Evasion, gaslighting, concealment detection |
-| B6 | Financial Correlation | Transaction vs statement verification |
-| B7 | Communication Analysis | Response patterns and deletions |
-| B8 | Jurisdictional Compliance | UAE, UK, EU, US law checking |
-| B9 | Integrity Scoring | 0-100 score with breakdown |
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 app/src/main/java/org/verumomnis/forensic/
@@ -179,48 +97,43 @@ app/src/main/java/org/verumomnis/forensic/
 │   └── VerumOmnisApplication.kt
 ├── crypto/                  # Cryptographic sealing
 │   └── CryptographicSealingEngine.kt
-├── leveler/                 # B1-B9 Leveler Engine
-│   └── LevelerEngine.kt
-├── location/                # GPS location services
+├── location/               # GPS location services
 │   └── ForensicLocationService.kt
-├── pdf/                     # PDF report generation
+├── pdf/                    # PDF report generation
 │   └── ForensicPdfGenerator.kt
-├── report/                  # Narrative generation
+├── report/                 # Narrative generation
 │   └── ForensicNarrativeGenerator.kt
-└── ui/                      # User interface
+├── leveler/                # B1-B9 Compliance engine
+│   └── LevelerEngine.kt
+└── ui/                     # User interface
     ├── MainActivity.kt
     ├── ScannerActivity.kt
-    ├── CaseDetailActivity.kt
     └── ReportViewerActivity.kt
 ```
 
-## 🛡️ Security Considerations
+## Leveler Engine (B1-B9 Compliance)
 
-- All evidence is cryptographically sealed at capture time
-- SHA-512 hashes ensure content integrity verification
-- HMAC-SHA512 provides tamper-proof sealing
-- No data is transmitted to external servers
-- All processing happens locally on device
-- APK signature is included in reports for chain of trust
+The Leveler Engine provides multi-dimensional forensic analysis:
 
-## 📋 Verification
+- **Contradiction Detection**: Identifies conflicting statements across evidence
+- **Timeline Reconstruction**: Builds chronological narrative from fragments
+- **Behavioral Pattern Analysis**: Detects gaslighting, evasion, concealment
+- **Jurisdictional Compliance**: UAE, SA, EU law compliance checking
+- **Integrity Index**: 0-100 scoring with breakdown
 
-Each forensic report includes:
+### Behavioral Patterns Detected
 
-1. **QR Code** - Contains report metadata and verification hashes
-2. **APK Hash** - SHA-512 of the signing certificate
-3. **Evidence Hashes** - Individual SHA-512 for each evidence item
-4. **Case Integrity Hash** - Combined hash of all evidence
-5. **Seal Hashes** - HMAC-SHA512 tamper-proof seals
+| Pattern | Indicators |
+|---------|------------|
+| Evasion | "cannot comment", "not sure", "don't recall", "maybe" |
+| Gaslighting | "you misunderstood", "that never happened", "you're confused" |
+| Concealment | "deleted", "lost", "forgot", "not available", "accidentally" |
+| Deflection | "what about you", "others did worse", "not my department" |
 
-## 📜 License
+## License
 
 Copyright © 2024 Verum Global Foundation
 
-## 👤 Creator
+## Creator
 
 **Liam Highcock**
-
----
-
-*AI FORENSICS FOR TRUTH*

@@ -5,9 +5,7 @@ import android.app.Application
 /**
  * Verum Omnis Forensic Application
  * 
- * Constitutional Governance Mode: Active
- * 
- * Core Principles:
+ * Operating under the Verum Omnis Constitution Mode:
  * - Truth: Factual accuracy and verifiable evidence
  * - Fairness: Protection of vulnerable parties
  * - Human Rights: Dignity, equality, and agency
@@ -16,7 +14,7 @@ import android.app.Application
  * - Integrity: No manipulation or bias
  * - Independence: No external influence on outputs
  * 
- * Security:
+ * Security Features:
  * - Offline First: True
  * - Stateless: True
  * - No Cloud Logging: True
@@ -25,26 +23,30 @@ import android.app.Application
  */
 class VerumOmnisApplication : Application() {
 
-    companion object {
-        const val VERSION = "1.0.0"
-        const val CONSTITUTION_VERSION = "5.1.1"
-        
-        // Forensic Standards
-        const val HASH_STANDARD = "SHA-512"
-        const val PDF_STANDARD = "PDF 1.7"
-        const val WATERMARK_TEXT = "VERUM OMNIS FORENSIC SEAL"
-        
-        // Security Flags
-        const val OFFLINE_FIRST = true
-        const val STATELESS = true
-        const val NO_CLOUD_LOGGING = true
-        const val NO_TELEMETRY = true
-        const val AIRGAP_READY = true
-    }
+    lateinit var forensicEngine: ForensicEngine
+        private set
 
     override fun onCreate() {
         super.onCreate()
-        // Initialize offline-first forensic engine
-        // No network calls, no telemetry, no cloud logging
+        instance = this
+        initializeForensicEngine()
+    }
+
+    private fun initializeForensicEngine() {
+        forensicEngine = ForensicEngine(applicationContext)
+    }
+
+    companion object {
+        private lateinit var instance: VerumOmnisApplication
+
+        fun getInstance(): VerumOmnisApplication = instance
+
+        // Constitution Mode Constants
+        const val HASH_STANDARD = "SHA-512"
+        const val PDF_STANDARD = "PDF 1.7"
+        const val WATERMARK = "VERUM OMNIS"
+        const val QR_CODE_ENABLED = true
+        const val TAMPER_DETECTION_MANDATORY = true
+        const val ADMISSIBILITY_STANDARD = "Legal-grade"
     }
 }

@@ -1,106 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout 
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:background="@color/background_light"
+    tools:context=".ui.ScannerActivity">
 
-    <!-- Camera Preview -->
-    <androidx.camera.view.PreviewView
-        android:id="@+id/viewFinder"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/controlsContainer" />
-
-    <!-- Controls Container -->
-    <LinearLayout
-        android:id="@+id/controlsContainer"
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:theme="@style/Theme.VerumOmnisForensic">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary"
+            app:title="@string/evidence_scanner"
+            app:titleTextColor="@color/white" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="16dp"
-        android:background="#0F1E36"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/tvCaseId"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Case: CASE-XXXXXXXX"
-                android:textSize="12sp"
-                android:textColor="#1E88E5" />
-
-            <TextView
-                android:id="@+id/tvEvidenceType"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Capturing: DOCUMENT"
-                android:textSize="12sp"
-                android:textColor="#4CAF50" />
-        </LinearLayout>
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <TextView
-            android:id="@+id/tvLocation"
+            android:id="@+id/textCaseName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Location: Acquiring..."
-            android:textSize="12sp"
-            android:textColor="#AAAAAA"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            tools:text="Case Name" />
+
+        <TextView
+            android:id="@+id/textEvidenceCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:paddingBottom="16dp"
+            tools:text="3 evidence items collected" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewEvidence"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            tools:listitem="@layout/item_evidence" />
+
+        <Button
+            android:id="@+id/btnGenerateReport"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/generate_forensic_report"
+            android:backgroundTint="@color/primary"
+            android:textColor="@color/white"
             android:layout_marginTop="8dp" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="16dp"
-            android:gravity="center">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCancel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Cancel"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:textColor="#FFFFFF" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCapture"
-                android:layout_width="wrap_content"
-                android:layout_height="80dp"
-                android:layout_marginHorizontal="24dp"
-                app:cornerRadius="40dp"
-                app:backgroundTint="#1E88E5"
-                app:icon="@android:drawable/ic_menu_camera"
-                app:iconGravity="textStart"
-                app:iconSize="32dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSwitchType"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Switch"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:textColor="#FFFFFF" />
-        </LinearLayout>
     </LinearLayout>
 
-    <!-- Progress Bar -->
-    <ProgressBar
-        android:id="@+id/progressBar"
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddEvidence"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:layout_marginBottom="80dp"
+        android:contentDescription="@string/add_evidence"
+        android:src="@android:drawable/ic_menu_camera"
+        app:backgroundTint="@color/accent" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

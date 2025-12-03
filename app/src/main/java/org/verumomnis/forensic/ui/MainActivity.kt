@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -12,211 +11,67 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import kotlinx.coroutines.Dispatchers
+import androidx.recyclerview.widget.RecyclerView
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import android.widget.EditText
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.verumomnis.forensic.R
-import org.verumomnis.forensic.core.*
-import org.verumomnis.forensic.databinding.ActivityMainBinding
-import org.verumomnis.forensic.location.ForensicLocationService
-import java.text.SimpleDateFormat
-import java.util.*
+import org.verumomnis.forensic.core.ForensicCase
+import org.verumomnis.forensic.core.VerumOmnisApplication
+import java.time.format.DateTimeFormatter
 
 /**
- * Main Activity - Forensic Case Management
+ * Main Activity for the Verum Omnis Forensic Engine
  * 
- * Primary interface for:
- * - Creating forensic cases
- * - Adding evidence
- * - Viewing case status
- * - Generating reports
- * 
- * @author Liam Highcock
- * @version 1.0.0
+ * Features:
+ * - Case list display
+ * - Create new cases
+ * - Navigate to scanner and report viewer
+ * - Location permission handling
  */
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
-    private lateinit var forensicEngine: ForensicEngine
-    private lateinit var locationService: ForensicLocationService
-    private lateinit var caseAdapter: CaseAdapter
-
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
-
-    // Permission launcher
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val allGranted = permissions.entries.all { it.value }
-        if (allGranted) {
-            onPermissionsGranted()
-        } else {
-            showPermissionRationale()
-        }
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var fabNewCase: FloatingActionButton
+    private lateinit var emptyView: TextView
+    
+    private val forensicEngine by lazy { 
+        VerumOmnisApplication.getInstance().forensicEngine 
+    }
+    
+    private val caseAdapter = CaseAdapter { case ->
+        navigateToCase(case)
     }
 
-    // Scanner result launcher
-    private val scannerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            result.data?.let { handleScannerResult(it) }
+    private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseLocation = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+        
+        if (fineLocation || coarseLocation) {
+            Toast.makeText(this, "Location permission granted", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(
+                this, 
+                "Location permission denied. Evidence will not include geolocation.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        initializeEngine()
-        setupUI()
-        checkPermissions()
-    }
-
-    private fun initializeEngine() {
-        forensicEngine = ForensicEngine(this)
-        locationService = ForensicLocationService(this)
-    }
-
-    private fun setupUI() {
-        // App branding
-        binding.tvAppName.text = "VERUM OMNIS"
-        binding.tvTagline.text = "AI FORENSICS FOR TRUTH"
-        binding.tvVersion.text = "v${VerumOmnisApplication.VERSION}"
-        binding.tvConstitution.text = "Constitutional Governance: ACTIVE"
-
-        // Create case button
-        binding.btnCreateCase.setOnClickListener {
-            showCreateCaseDialog()
-        }
-
-        // Setup RecyclerView for cases
-        caseAdapter = CaseAdapter(
-            onCaseClick = { caseId -> openCaseDetail(caseId) },
-            onGenerateReport = { caseId -> generateReport(caseId) }
-        )
-        binding.rvCases.layoutManager = LinearLayoutManager(this)
-        binding.rvCases.adapter = caseAdapter
-
-        // Refresh cases
-        refreshCaseList()
-    }
-
-    private fun checkPermissions() {
-        val permissions = arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
-
-        val permissionsNeeded = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (permissionsNeeded.isNotEmpty()) {
-            permissionLauncher.launch(permissionsNeeded.toTypedArray())
-        }
-    }
-
-    private fun onPermissionsGranted() {
-        Toast.makeText(this, "Permissions granted", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun showPermissionRationale() {
-        AlertDialog.Builder(this)
-            .setTitle("Permissions Required")
-            .setMessage(
-                "Verum Omnis Forensic Engine requires:\n\n" +
-                "• Camera: To capture document evidence\n" +
-                "• Location: To geotag evidence\n\n" +
-                "All data stays on your device."
-            )
-            .setPositiveButton("Grant") { _, _ -> checkPermissions() }
-            .setNegativeButton("Continue Without") { _, _ -> }
-            .show()
-    }
-
-    private fun showCreateCaseDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_create_case, null)
-        val nameInput = dialogView.findViewById<android.widget.EditText>(R.id.etCaseName)
-        val descInput = dialogView.findViewById<android.widget.EditText>(R.id.etCaseDescription)
-
-        AlertDialog.Builder(this)
-            .setTitle("Create Forensic Case")
-            .setView(dialogView)
-            .setPositiveButton("Create") { _, _ ->
-                val name = nameInput.text.toString().trim()
-                val description = descInput.text.toString().trim()
-                
-                if (name.isNotEmpty()) {
-                    createCase(name, description)
-                } else {
-                    Toast.makeText(this, "Case name required", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun createCase(name: String, description: String) {
-        val newCase = forensicEngine.createCase(name, description)
-        Toast.makeText(this, "Case created: ${newCase.id}", Toast.LENGTH_SHORT).show()
-        refreshCaseList()
-    }
-
-    private fun refreshCaseList() {
-        val cases = forensicEngine.getAllCases()
-        caseAdapter.updateCases(cases)
+        setContentView(R.layout.activity_main)
         
-        binding.tvCaseCount.text = "${cases.size} Active Case(s)"
-        binding.emptyState.visibility = if (cases.isEmpty()) View.VISIBLE else View.GONE
-        binding.rvCases.visibility = if (cases.isEmpty()) View.GONE else View.VISIBLE
-    }
-
-    private fun openCaseDetail(caseId: String) {
-        val intent = Intent(this, CaseDetailActivity::class.java).apply {
-            putExtra(CaseDetailActivity.EXTRA_CASE_ID, caseId)
-        }
-        startActivity(intent)
-    }
-
-    private fun generateReport(caseId: String) {
-        binding.progressBar.visibility = View.VISIBLE
-        
-        lifecycleScope.launch {
-            try {
-                val report = withContext(Dispatchers.IO) {
-                    forensicEngine.generateReport(caseId)
-                }
-                
-                binding.progressBar.visibility = View.GONE
-                
-                if (report != null) {
-                    openReportViewer(report)
-                    Toast.makeText(this@MainActivity, "Report generated!", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@MainActivity, "Failed to generate report", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                binding.progressBar.visibility = View.GONE
-                Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-        
-        refreshCaseList()
-    }
-
-    private fun openReportViewer(report: ForensicReport) {
-        val intent = Intent(this, ReportViewerActivity::class.java).apply {
-            putExtra(ReportViewerActivity.EXTRA_REPORT_ID, report.id)
-            putExtra(ReportViewerActivity.EXTRA_CASE_ID, report.caseId)
-        }
-        startActivity(intent)
-    }
-
-    private fun handleScannerResult(data: Intent) {
-        // Handle scanner result
-        val caseId = data.getStringExtra("caseId") ?: return
+        setupViews()
+        requestLocationPermission()
         refreshCaseList()
     }
 
@@ -224,56 +79,155 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         refreshCaseList()
     }
-}
 
-/**
- * Adapter for displaying forensic cases
- */
-class CaseAdapter(
-    private val onCaseClick: (String) -> Unit,
-    private val onGenerateReport: (String) -> Unit
-) : androidx.recyclerview.widget.RecyclerView.Adapter<CaseAdapter.CaseViewHolder>() {
-
-    private var cases: List<ForensicCase> = emptyList()
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
-
-    fun updateCases(newCases: List<ForensicCase>) {
-        cases = newCases.sortedByDescending { it.modifiedAt }
-        notifyDataSetChanged()
+    private fun setupViews() {
+        recyclerView = findViewById(R.id.recyclerViewCases)
+        fabNewCase = findViewById(R.id.fabNewCase)
+        emptyView = findViewById(R.id.textEmptyState)
+        
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = caseAdapter
+        
+        fabNewCase.setOnClickListener {
+            showNewCaseDialog()
+        }
     }
 
-    override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): CaseViewHolder {
-        val view = android.view.LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_case, parent, false)
-        return CaseViewHolder(view)
+    private fun requestLocationPermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                // Permission already granted
+            }
+            shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
+                AlertDialog.Builder(this)
+                    .setTitle("Location Permission Needed")
+                    .setMessage(
+                        "The Verum Omnis Forensic Engine uses location data to geotag " +
+                        "evidence at collection time. This helps establish the chain of " +
+                        "custody for legal proceedings."
+                    )
+                    .setPositiveButton("Grant") { _, _ ->
+                        locationPermissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
+                    }
+                    .setNegativeButton("Deny") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .show()
+            }
+            else -> {
+                locationPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            }
+        }
     }
 
-    override fun onBindViewHolder(holder: CaseViewHolder, position: Int) {
-        holder.bind(cases[position])
+    private fun showNewCaseDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_new_case, null)
+        val editCaseName = dialogView.findViewById<EditText>(R.id.editCaseName)
+        val editCaseDescription = dialogView.findViewById<EditText>(R.id.editCaseDescription)
+        
+        AlertDialog.Builder(this)
+            .setTitle("Create New Case")
+            .setView(dialogView)
+            .setPositiveButton("Create") { _, _ ->
+                val name = editCaseName.text.toString().trim()
+                val description = editCaseDescription.text.toString().trim()
+                
+                if (name.isNotBlank()) {
+                    createNewCase(name, description)
+                } else {
+                    Toast.makeText(this, "Please enter a case name", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
-    override fun getItemCount() = cases.size
+    private fun createNewCase(name: String, description: String) {
+        val newCase = forensicEngine.createCase(name, description)
+        Toast.makeText(this, "Case created: ${newCase.name}", Toast.LENGTH_SHORT).show()
+        refreshCaseList()
+        navigateToCase(newCase)
+    }
 
-    inner class CaseViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
-        private val tvCaseId: android.widget.TextView = view.findViewById(R.id.tvCaseId)
-        private val tvCaseName: android.widget.TextView = view.findViewById(R.id.tvCaseName)
-        private val tvStatus: android.widget.TextView = view.findViewById(R.id.tvStatus)
-        private val tvEvidenceCount: android.widget.TextView = view.findViewById(R.id.tvEvidenceCount)
-        private val tvDate: android.widget.TextView = view.findViewById(R.id.tvDate)
-        private val btnReport: android.widget.Button = view.findViewById(R.id.btnGenerateReport)
+    private fun navigateToCase(case: ForensicCase) {
+        val intent = Intent(this, ScannerActivity::class.java).apply {
+            putExtra(EXTRA_CASE_ID, case.id)
+        }
+        startActivity(intent)
+    }
 
-        fun bind(forensicCase: ForensicCase) {
-            tvCaseId.text = forensicCase.id
-            tvCaseName.text = forensicCase.name
-            tvStatus.text = forensicCase.status.name
-            tvEvidenceCount.text = "${forensicCase.evidence.size} evidence item(s)"
-            tvDate.text = "Modified: ${dateFormat.format(Date(forensicCase.modifiedAt))}"
+    private fun refreshCaseList() {
+        val cases = forensicEngine.getAllCases()
+        caseAdapter.submitList(cases)
+        
+        if (cases.isEmpty()) {
+            emptyView.visibility = View.VISIBLE
+            recyclerView.visibility = View.GONE
+        } else {
+            emptyView.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
+        }
+    }
 
-            itemView.setOnClickListener { onCaseClick(forensicCase.id) }
-            btnReport.setOnClickListener { onGenerateReport(forensicCase.id) }
+    companion object {
+        const val EXTRA_CASE_ID = "extra_case_id"
+    }
 
-            // Disable report button for cases with no evidence
-            btnReport.isEnabled = forensicCase.evidence.isNotEmpty()
+    /**
+     * RecyclerView Adapter for cases
+     */
+    inner class CaseAdapter(
+        private val onCaseClick: (ForensicCase) -> Unit
+    ) : RecyclerView.Adapter<CaseAdapter.CaseViewHolder>() {
+
+        private var cases: List<ForensicCase> = emptyList()
+
+        fun submitList(newCases: List<ForensicCase>) {
+            cases = newCases
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CaseViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_case, parent, false)
+            return CaseViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: CaseViewHolder, position: Int) {
+            holder.bind(cases[position])
+        }
+
+        override fun getItemCount(): Int = cases.size
+
+        inner class CaseViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            private val textCaseName: TextView = itemView.findViewById(R.id.textCaseName)
+            private val textCaseDate: TextView = itemView.findViewById(R.id.textCaseDate)
+            private val textCaseStatus: TextView = itemView.findViewById(R.id.textCaseStatus)
+            private val textEvidenceCount: TextView = itemView.findViewById(R.id.textEvidenceCount)
+
+            fun bind(case: ForensicCase) {
+                textCaseName.text = case.name
+                textCaseDate.text = case.createdAt.format(dateFormatter)
+                textCaseStatus.text = case.status.name
+                textEvidenceCount.text = "${case.evidence.size} evidence items"
+                
+                itemView.setOnClickListener {
+                    onCaseClick(case)
+                }
+            }
         }
     }
 }

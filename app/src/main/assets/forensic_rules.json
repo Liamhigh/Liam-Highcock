@@ -1,0 +1,96 @@
+{
+  "version": "1.0.0",
+  "name": "Verum Omnis Forensic Rules",
+  "description": "Evidence collection and analysis rules for the Verum Omnis Constitutional Governance Layer",
+  "constitutional_principles": {
+    "truth": {
+      "requirement": "Factual accuracy and verifiable evidence",
+      "enforcement": "All evidence must be cryptographically sealed with SHA-512 hashing"
+    },
+    "fairness": {
+      "requirement": "Protection of vulnerable parties",
+      "enforcement": "Ensure balanced representation in evidence collection"
+    },
+    "human_rights": {
+      "requirement": "Dignity, equality, and agency",
+      "enforcement": "Respect privacy and consent in all evidence gathering"
+    },
+    "non_extraction": {
+      "requirement": "No sensitive data transmission",
+      "enforcement": "All processing is offline-first with no cloud logging or telemetry"
+    },
+    "human_authority": {
+      "requirement": "AI assists, never overrides",
+      "enforcement": "All findings require human review before action"
+    },
+    "integrity": {
+      "requirement": "No manipulation or bias",
+      "enforcement": "Transparent analysis methods with full audit trail"
+    },
+    "independence": {
+      "requirement": "No external influence on outputs",
+      "enforcement": "Isolated processing without external data sources"
+    }
+  },
+  "forensic_standards": {
+    "hash_algorithm": "SHA-512",
+    "seal_algorithm": "HMAC-SHA512",
+    "pdf_version": "1.7",
+    "watermark": "VERUM OMNIS",
+    "qr_code_required": true,
+    "tamper_detection": "mandatory",
+    "admissibility": "legal-grade"
+  },
+  "evidence_types": {
+    "document": {
+      "formats": ["pdf", "jpg", "png", "tiff"],
+      "max_size_mb": 50,
+      "require_ocr": true
+    },
+    "photo": {
+      "formats": ["jpg", "png"],
+      "max_size_mb": 25,
+      "require_geolocation": true
+    },
+    "text": {
+      "max_length": 50000,
+      "require_timestamp": true
+    },
+    "audio": {
+      "formats": ["wav", "mp3", "m4a"],
+      "max_duration_minutes": 120,
+      "status": "coming_soon"
+    },
+    "video": {
+      "formats": ["mp4", "mov"],
+      "max_duration_minutes": 60,
+      "status": "coming_soon"
+    }
+  },
+  "jurisdictional_rules": {
+    "UAE": {
+      "required_languages": ["ar", "en"],
+      "timestamp_format": "ISO_8601",
+      "witness_requirements": 2,
+      "notarization_required": true
+    },
+    "SA": {
+      "required_languages": ["en", "af", "zu"],
+      "timestamp_format": "ISO_8601",
+      "digital_signature": "ECT_Act_Compliant",
+      "data_retention_years": 5
+    },
+    "EU": {
+      "required_languages": ["en", "local"],
+      "timestamp_format": "ISO_8601",
+      "gdpr_compliance": true,
+      "right_to_be_forgotten": true
+    }
+  },
+  "behavioral_patterns": {
+    "evasion_keywords": ["cannot comment", "not sure", "don't recall", "maybe"],
+    "gaslighting_indicators": ["you misunderstood", "that never happened", "you're confused"],
+    "concealment_patterns": ["deleted", "lost", "forgot", "not available", "accidentally"],
+    "deflection_tactics": ["what about you", "others did worse", "not my department"]
+  }
+}
