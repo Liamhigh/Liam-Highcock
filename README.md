@@ -1,8 +1,6 @@
 # SAPS Forensic Evidence Engine
 
-<p align="center">
-  <img src="main-logo.png" alt="SAPS Forensic Engine Logo" width="200"/>
-</p>
+![Verum Omnis Logo](docs/images/main-logo.png)
 
 [![Build SAPS Forensic APK](https://github.com/Liamhigh/Liam-Highcock/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Liamhigh/Liam-Highcock/actions/workflows/build-apk.yml)
 
@@ -154,24 +152,52 @@ This application operates under constitutional governance principles:
 
 ### Prerequisites
 
-- Android Studio Hedgehog or later
-- JDK 17
-- Android SDK 34
+- **Java**: JDK 17 or later
+- **Android SDK**: API Level 34 (Android 14)
+- **Android Studio**: Hedgehog (2023.1.1) or later (recommended for development)
+
+### Quick Start
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Liamhigh/Liam-Highcock.git
+   cd Liam-Highcock
+   ```
+
+2. Create `local.properties` with your Android SDK path:
+   ```bash
+   echo "sdk.dir=/path/to/your/android/sdk" > local.properties
+   # Example paths:
+   # macOS: sdk.dir=/Users/yourusername/Library/Android/sdk
+   # Linux: sdk.dir=/home/yourusername/Android/Sdk
+   # Windows: sdk.dir=C\:\\Users\\yourusername\\AppData\\Local\\Android\\Sdk
+   ```
+
+3. Build the APK:
+   ```bash
+   # Linux/macOS
+   ./gradlew assembleDebug
+   
+   # Windows
+   gradlew.bat assembleDebug
+   ```
 
 ### Build Commands
 
-```bash
-# Build Debug APK
-./gradlew assembleDebug
+| Command | Description | Output |
+|---------|-------------|--------|
+| `./gradlew assembleDebug` | Build debug APK | `app/build/outputs/apk/debug/app-debug.apk` |
+| `./gradlew assembleRelease` | Build release APK (unsigned) | `app/build/outputs/apk/release/app-release-unsigned.apk` |
+| `./gradlew testDebugUnitTest` | Run unit tests | Test reports in `app/build/reports/tests/` |
+| `./gradlew clean` | Clean build artifacts | - |
 
-# Build Release APK
-./gradlew assembleRelease
+### CI/CD
 
-# Run Tests
-./gradlew test
-```
+GitHub Actions automatically builds the APK on:
+- Push to `main` or `develop` branches
+- Pull requests to `main` branch
 
-Output APKs will be in `app/build/outputs/apk/`
+Build artifacts are available for download from the Actions tab.
 
 ## 📦 Deployment Options
 
