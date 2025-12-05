@@ -1,6 +1,7 @@
 package org.verumomnis.forensic.report
 
 import org.verumomnis.forensic.core.*
+import org.verumomnis.forensic.leveler.LevelerEngine
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -11,7 +12,7 @@ import java.util.*
  * Produces structured reports with chain of custody documentation.
  * 
  * @author Liam Highcock
- * @version 1.0.0
+ * @version 1.1.0
  */
 class ForensicNarrativeGenerator {
 
@@ -35,6 +36,212 @@ class ForensicNarrativeGenerator {
             appendLine(generateVerificationInstructions(forensicCase))
             appendLine()
             appendLine(generateFooter())
+        }
+    }
+
+    /**
+     * Generate enhanced narrative with Leveler analysis
+     */
+    fun generateNarrativeWithLeveler(
+        forensicCase: ForensicCase,
+        levelerResult: LevelerEngine.EnhancedLevelerResult
+    ): String {
+        return buildString {
+            appendLine(generateHeader(forensicCase))
+            appendLine()
+            appendLine(generateExecutiveSummary(forensicCase))
+            appendLine()
+            
+            // Add Leveler Analysis Section
+            appendLine(generateLevelerAnalysis(levelerResult))
+            appendLine()
+            
+            appendLine(generateEvidenceInventory(forensicCase))
+            appendLine()
+            appendLine(generateChainOfCustody(forensicCase))
+            appendLine()
+            appendLine(generateIntegrityStatement(forensicCase))
+            appendLine()
+            
+            // Add Leveler Recommendations
+            appendLine(generateLevelerRecommendations(levelerResult))
+            appendLine()
+            
+            appendLine(generateVerificationInstructions(forensicCase))
+            appendLine()
+            appendLine(generateFooter())
+        }
+    }
+
+    /**
+     * Generate Leveler analysis section (B1-B9)
+     */
+    private fun generateLevelerAnalysis(result: LevelerEngine.EnhancedLevelerResult): String {
+        return buildString {
+            appendLine("B1-B9 LEVELER ANALYSIS")
+            appendLine("══════════════════════")
+            appendLine()
+            
+            // B9: Integrity Score (shown first as overall assessment)
+            appendLine("┌─────────────────────────────────────────────────────────────────┐")
+            appendLine("│ B9: INTEGRITY INDEX SCORE")
+            appendLine("├─────────────────────────────────────────────────────────────────┤")
+            appendLine("│ SCORE: ${String.format("%.2f", result.integrityScore)}/100")
+            val category = ForensicConstants.IntegrityScore.getCategory(result.integrityScore)
+            val statusIcon = when (category) {
+                "EXCELLENT" -> "✓"
+                "GOOD" -> ""
+                "FAIR" -> ""
+                else -> "⚠"
+            }
+            appendLine("│ CATEGORY: $category $statusIcon")
+            appendLine("│ CONFIDENCE: ${String.format("%.1f", result.confidence * 100)}%")
+            appendLine("└─────────────────────────────────────────────────────────────────┘")
+            appendLine()
+            
+            // B2: Contradictions
+            if (result.contradictions.isNotEmpty()) {
+                appendLine("┌─────────────────────────────────────────────────────────────────┐")
+                appendLine("│ B2: CONTRADICTION DETECTION")
+                appendLine("├─────────────────────────────────────────────────────────────────┤")
+                appendLine("│ TOTAL CONTRADICTIONS FOUND: ${result.contradictions.size}")
+                appendLine("│")
+                result.contradictions.take(5).forEach { contradiction ->
+                    appendLine("│ • TYPE: ${contradiction.type.name}")
+                    appendLine("│   SEVERITY: ${contradiction.severity.name}")
+                    appendLine("│   RULE: ${contradiction.ruleViolated}")
+                    appendLine("│")
+                }
+                if (result.contradictions.size > 5) {
+                    appendLine("│ ... and ${result.contradictions.size - 5} more")
+                    appendLine("│")
+                }
+                appendLine("└─────────────────────────────────────────────────────────────────┘")
+                appendLine()
+            }
+            
+            // B3: Evidence Gaps
+            if (result.missingEvidence.isNotEmpty()) {
+                appendLine("┌─────────────────────────────────────────────────────────────────┐")
+                appendLine("│ B3: MISSING EVIDENCE GAP ANALYSIS")
+                appendLine("├─────────────────────────────────────────────────────────────────┤")
+                appendLine("│ EVIDENCE GAPS DETECTED: ${result.missingEvidence.size}")
+                appendLine("│")
+                result.missingEvidence.forEach { gap ->
+                    appendLine("│ • ${gap.type.uppercase()}")
+                    appendLine("│   Criticality: ${gap.criticality.name}")
+                    appendLine("│   Action: ${gap.recommendedAction}")
+                    appendLine("│")
+                }
+                appendLine("└─────────────────────────────────────────────────────────────────┘")
+                appendLine()
+            }
+            
+            // B4: Timeline Anomalies
+            if (result.timelineAnomalies.isNotEmpty()) {
+                appendLine("┌─────────────────────────────────────────────────────────────────┐")
+                appendLine("│ B4: TIMELINE MANIPULATION DETECTION")
+                appendLine("├─────────────────────────────────────────────────────────────────┤")
+                appendLine("│ ANOMALIES DETECTED: ${result.timelineAnomalies.size}")
+                appendLine("│")
+                result.timelineAnomalies.forEach { anomaly ->
+                    appendLine("│ • TYPE: ${anomaly.type.name}")
+                    appendLine("│   Document: ${anomaly.documentId}")
+                    appendLine("│   Suspicion: ${String.format("%.0f", anomaly.suspicionScore * 100)}%")
+                    appendLine("│")
+                }
+                appendLine("└─────────────────────────────────────────────────────────────────┘")
+                appendLine()
+            }
+            
+            // B5: Behavioral Patterns
+            if (result.behavioralPatterns.isNotEmpty()) {
+                appendLine("┌─────────────────────────────────────────────────────────────────┐")
+                appendLine("│ B5: BEHAVIORAL PATTERN RECOGNITION")
+                appendLine("├─────────────────────────────────────────────────────────────────┤")
+                appendLine("│ PATTERNS DETECTED: ${result.behavioralPatterns.size}")
+                appendLine("│")
+                result.behavioralPatterns.forEach { pattern ->
+                    appendLine("│ • ${pattern.type.name}")
+                    appendLine("│   Match: ${String.format("%.0f", pattern.score * 100)}%")
+                    appendLine("│   Frequency: ${pattern.frequency} occurrences")
+                    appendLine("│")
+                }
+                appendLine("└─────────────────────────────────────────────────────────────────┘")
+                appendLine()
+            }
+            
+            // B6: Financial Discrepancies
+            if (result.financialDiscrepancies.isNotEmpty()) {
+                appendLine("┌─────────────────────────────────────────────────────────────────┐")
+                appendLine("│ B6: FINANCIAL TRANSACTION CORRELATION")
+                appendLine("├─────────────────────────────────────────────────────────────────┤")
+                appendLine("│ DISCREPANCIES FOUND: ${result.financialDiscrepancies.size}")
+                appendLine("│")
+                result.financialDiscrepancies.forEach { discrepancy ->
+                    appendLine("│ • ${discrepancy.type.name}")
+                    appendLine("│   ${discrepancy.description}")
+                    appendLine("│   Severity: ${discrepancy.severity.name}")
+                    appendLine("│")
+                }
+                appendLine("└─────────────────────────────────────────────────────────────────┘")
+                appendLine()
+            }
+            
+            // B7: Communication Patterns
+            if (result.communicationPatterns.isNotEmpty()) {
+                appendLine("┌─────────────────────────────────────────────────────────────────┐")
+                appendLine("│ B7: COMMUNICATION PATTERN ANALYSIS")
+                appendLine("├─────────────────────────────────────────────────────────────────┤")
+                appendLine("│ PATTERNS IDENTIFIED: ${result.communicationPatterns.size}")
+                appendLine("│")
+                result.communicationPatterns.forEach { pattern ->
+                    appendLine("│ • ${pattern.type.name}")
+                    appendLine("│   Score: ${String.format("%.0f", pattern.score * 100)}%")
+                    appendLine("│   Frequency: ${pattern.frequency}")
+                    appendLine("│")
+                }
+                appendLine("└─────────────────────────────────────────────────────────────────┘")
+                appendLine()
+            }
+            
+            // B8: Jurisdictional Compliance
+            appendLine("┌─────────────────────────────────────────────────────────────────┐")
+            appendLine("│ B8: JURISDICTIONAL COMPLIANCE CHECK")
+            appendLine("├─────────────────────────────────────────────────────────────────┤")
+            result.jurisdictionalCompliance.forEach { compliance ->
+                val status = if (compliance.isCompliant) "✓ COMPLIANT" else "⚠ NON-COMPLIANT"
+                appendLine("│ ${compliance.jurisdiction.name}: $status")
+                appendLine("│   Score: ${String.format("%.1f", compliance.score)}%")
+                if (compliance.violations.isNotEmpty()) {
+                    appendLine("│   Violations: ${compliance.violations.size}")
+                    compliance.violations.take(2).forEach { violation ->
+                        appendLine("│     - ${violation.rule}: ${violation.severity.name}")
+                    }
+                }
+                appendLine("│")
+            }
+            appendLine("└─────────────────────────────────────────────────────────────────┘")
+        }
+    }
+
+    /**
+     * Generate Leveler recommendations
+     */
+    private fun generateLevelerRecommendations(result: LevelerEngine.EnhancedLevelerResult): String {
+        return buildString {
+            appendLine("FORENSIC RECOMMENDATIONS")
+            appendLine("────────────────────────")
+            appendLine()
+            if (result.recommendations.isNotEmpty()) {
+                appendLine("Based on the Leveler analysis, the following actions are recommended:")
+                appendLine()
+                result.recommendations.forEachIndexed { index, recommendation ->
+                    appendLine("${index + 1}. $recommendation")
+                }
+            } else {
+                appendLine("No critical issues detected. Evidence chain appears intact and compliant.")
+            }
         }
     }
 

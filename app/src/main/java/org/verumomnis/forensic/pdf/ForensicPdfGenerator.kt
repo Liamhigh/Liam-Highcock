@@ -23,6 +23,7 @@ import com.itextpdf.layout.properties.UnitValue
 import com.itextpdf.layout.properties.VerticalAlignment
 import org.verumomnis.forensic.R
 import org.verumomnis.forensic.core.*
+import org.verumomnis.forensic.leveler.LevelerEngine
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
@@ -36,9 +37,10 @@ import java.util.*
  * - Chain of custody documentation
  * - Evidence inventory
  * - Cryptographic hashes
+ * - B1-B9 Leveler analysis results
  * 
  * @author Liam Highcock
- * @version 1.0.0
+ * @version 1.1.0
  */
 class ForensicPdfGenerator(private val context: Context) {
 
@@ -47,6 +49,9 @@ class ForensicPdfGenerator(private val context: Context) {
     // Brand colors
     private val brandNavy = DeviceRgb(15, 30, 54)  // #0F1E36
     private val brandBlue = DeviceRgb(30, 136, 229) // #1E88E5
+    private val alertRed = DeviceRgb(244, 67, 54)   // #F44336
+    private val warningOrange = DeviceRgb(255, 152, 0) // #FF9800
+    private val successGreen = DeviceRgb(76, 175, 80) // #4CAF50
 
     /**
      * Generate complete forensic PDF report
@@ -101,6 +106,398 @@ class ForensicPdfGenerator(private val context: Context) {
         
         return outputStream.toByteArray()
     }
+
+    /**
+     * Generate enhanced forensic PDF report with Leveler analysis
+     */
+    fun generateReportWithLeveler(
+        forensicCase: ForensicCase,
+        narrative: String,
+        evidenceSummary: List<EvidenceSummary>,
+        levelerResult: LevelerEngine.EnhancedLevelerResult,
+        qrCodeData: String,
+        apkHash: String
+    ): ByteArray {
+        val outputStream = ByteArrayOutputStream()
+        
+        val pdfWriter = PdfWriter(outputStream)
+        val pdfDocument = PdfDocument(pdfWriter)
+        val document = Document(pdfDocument, PageSize.A4)
+        
+        document.setMargins(50f, 50f, 50f, 50f)
+        
+        try {
+            // Add watermark to all pages
+            addWatermark(pdfDocument)
+            
+            // Cover page with Leveler badge
+            addCoverPageWithLeveler(document, forensicCase, levelerResult, apkHash)
+            document.add(AreaBreak())
+            
+            // Table of contents
+            addTableOfContentsWithLeveler(document, forensicCase)
+            document.add(AreaBreak())
+            
+            // Executive summary
+            addExecutiveSummary(document, forensicCase)
+            document.add(AreaBreak())
+            
+            // === ADD LEVELER ANALYSIS SECTION ===
+            addLevelerAnalysisSection(document, levelerResult)
+            document.add(AreaBreak())
+            
+            // Evidence inventory
+            addEvidenceInventory(document, forensicCase, evidenceSummary)
+            document.add(AreaBreak())
+            
+            // Full narrative
+            addNarrativeSection(document, narrative)
+            document.add(AreaBreak())
+            
+            // Verification page with QR code
+            addVerificationPage(document, forensicCase, qrCodeData, apkHash)
+            
+            document.close()
+        } catch (e: Exception) {
+            document.close()
+            throw e
+        }
+        
+        return outputStream.toByteArray()
+    }
+
+    /**
+     * Add enhanced cover page with Leveler integrity badge
+     */
+    private fun addCoverPageWithLeveler(
+        document: Document,
+        forensicCase: ForensicCase,
+        levelerResult: LevelerEngine.EnhancedLevelerResult,
+        apkHash: String
+    ) {
+        // Logo
+        val logoText = Paragraph("VERUM OMNIS")
+            .setFontSize(36f)
+            .setFontColor(brandNavy)
+            .setBold()
+            .setTextAlignment(TextAlignment.CENTER)
+            .setMarginTop(100f)
+        document.add(logoText)
+        
+        val tagline = Paragraph("AI FORENSICS FOR TRUTH")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setTextAlignment(TextAlignment.CENTER)
+            .setMarginBottom(30f)
+        document.add(tagline)
+        
+        // Integrity Badge
+        val integrityScore = levelerResult.integrityScore
+        val category = ForensicConstants.IntegrityScore.getCategory(integrityScore)
+        val badgeColor = when (category) {
+            "EXCELLENT" -> successGreen
+            "GOOD" -> brandBlue
+            "FAIR" -> warningOrange
+            else -> alertRed
+        }
+        
+        val badgeText = Paragraph("INTEGRITY SCORE: ${String.format("%.1f", integrityScore)}/100")
+            .setFontSize(20f)
+            .setFontColor(badgeColor)
+            .setBold()
+            .setTextAlignment(TextAlignment.CENTER)
+            .setMarginBottom(50f)
+        document.add(badgeText)
+        
+        // Standard cover content
+        val title = Paragraph("FORENSIC REPORT")
+            .setFontSize(28f)
+            .setFontColor(brandNavy)
+            .setBold()
+            .setTextAlignment(TextAlignment.CENTER)
+        document.add(title)
+        
+        val caseInfo = Paragraph("Case: ${forensicCase.name}\nID: ${forensicCase.id}")
+            .setFontSize(12f)
+            .setTextAlignment(TextAlignment.CENTER)
+            .setMarginTop(20f)
+        document.add(caseInfo)
+        
+        val dateInfo = Paragraph("Generated: ${dateFormat.format(Date())}")
+            .setFontSize(10f)
+            .setTextAlignment(TextAlignment.CENTER)
+            .setMarginTop(10f)
+            .setFontColor(ColorConstants.GRAY)
+        document.add(dateInfo)
+    }
+
+    /**
+     * Add enhanced table of contents with Leveler section
+     */
+    private fun addTableOfContentsWithLeveler(document: Document, forensicCase: ForensicCase) {
+        val heading = Paragraph("TABLE OF CONTENTS")
+            .setFontSize(18f)
+            .setFontColor(brandNavy)
+            .setBold()
+            .setMarginBottom(20f)
+        document.add(heading)
+        
+        val toc = listOf(
+            "1. Executive Summary",
+            "2. B1-B9 Leveler Analysis",
+            "3. Evidence Inventory",
+            "4. Forensic Narrative",
+            "5. Verification & QR Code"
+        )
+        
+        toc.forEach { item ->
+            val tocItem = Paragraph(item)
+                .setFontSize(12f)
+                .setMarginLeft(20f)
+                .setMarginBottom(5f)
+            document.add(tocItem)
+        }
+    }
+
+    /**
+     * Add comprehensive Leveler analysis section to PDF
+     */
+    private fun addLevelerAnalysisSection(
+        document: Document,
+        levelerResult: LevelerEngine.EnhancedLevelerResult
+    ) {
+        // Section heading
+        val heading = Paragraph("B1-B9 LEVELER ANALYSIS")
+            .setFontSize(20f)
+            .setFontColor(brandNavy)
+            .setBold()
+            .setMarginBottom(15f)
+        document.add(heading)
+        
+        // B9: Integrity Index (shown first as overall assessment)
+        addLevelerIntegrityIndex(document, levelerResult)
+        
+        // B2: Contradictions
+        if (levelerResult.contradictions.isNotEmpty()) {
+            addLevelerContradictions(document, levelerResult.contradictions)
+        }
+        
+        // B3: Evidence Gaps
+        if (levelerResult.missingEvidence.isNotEmpty()) {
+            addLevelerEvidenceGaps(document, levelerResult.missingEvidence)
+        }
+        
+        // B4: Timeline Anomalies
+        if (levelerResult.timelineAnomalies.isNotEmpty()) {
+            addLevelerTimelineAnomalies(document, levelerResult.timelineAnomalies)
+        }
+        
+        // B5: Behavioral Patterns
+        if (levelerResult.behavioralPatterns.isNotEmpty()) {
+            addLevelerBehavioralPatterns(document, levelerResult.behavioralPatterns)
+        }
+        
+        // B6: Financial Discrepancies
+        if (levelerResult.financialDiscrepancies.isNotEmpty()) {
+            addLevelerFinancialDiscrepancies(document, levelerResult.financialDiscrepancies)
+        }
+        
+        // B7: Communication Patterns
+        if (levelerResult.communicationPatterns.isNotEmpty()) {
+            addLevelerCommunicationPatterns(document, levelerResult.communicationPatterns)
+        }
+        
+        // B8: Jurisdictional Compliance
+        addLevelerJurisdictionalCompliance(document, levelerResult.jurisdictionalCompliance)
+        
+        // Recommendations
+        if (levelerResult.recommendations.isNotEmpty()) {
+            addLevelerRecommendations(document, levelerResult.recommendations)
+        }
+    }
+
+    private fun addLevelerIntegrityIndex(document: Document, result: LevelerEngine.EnhancedLevelerResult) {
+        val subheading = Paragraph("B9: INTEGRITY INDEX")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setBold()
+            .setMarginTop(10f)
+        document.add(subheading)
+        
+        val score = String.format("%.2f", result.integrityScore)
+        val category = ForensicConstants.IntegrityScore.getCategory(result.integrityScore)
+        
+        val scoreColor = when (category) {
+            "EXCELLENT", "GOOD" -> successGreen
+            "FAIR" -> warningOrange
+            else -> alertRed
+        }
+        
+        val scoreText = Paragraph("Score: $score/100 ($category)")
+            .setFontSize(12f)
+            .setFontColor(scoreColor)
+            .setBold()
+            .setMarginLeft(20f)
+        document.add(scoreText)
+        
+        val confidenceText = Paragraph("Confidence: ${String.format("%.1f", result.confidence * 100)}%")
+            .setFontSize(10f)
+            .setMarginLeft(20f)
+            .setMarginBottom(10f)
+        document.add(confidenceText)
+    }
+
+    private fun addLevelerContradictions(document: Document, contradictions: List<LevelerEngine.Contradiction>) {
+        val subheading = Paragraph("B2: CONTRADICTION DETECTION")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setBold()
+            .setMarginTop(10f)
+        document.add(subheading)
+        
+        val summary = Paragraph("Total contradictions found: ${contradictions.size}")
+            .setFontSize(11f)
+            .setMarginLeft(20f)
+        document.add(summary)
+        
+        contradictions.take(5).forEach { contradiction ->
+            val item = Paragraph("• ${contradiction.type.name} (${contradiction.severity.name})")
+                .setFontSize(10f)
+                .setMarginLeft(30f)
+                .setMarginBottom(3f)
+            document.add(item)
+        }
+        
+        if (contradictions.size > 5) {
+            val more = Paragraph("... and ${contradictions.size - 5} more")
+                .setFontSize(10f)
+                .setFontColor(ColorConstants.GRAY)
+                .setMarginLeft(30f)
+                .setMarginBottom(10f)
+            document.add(more)
+        }
+    }
+
+    private fun addLevelerEvidenceGaps(document: Document, gaps: List<LevelerEngine.EvidenceGap>) {
+        val subheading = Paragraph("B3: MISSING EVIDENCE GAP ANALYSIS")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setBold()
+            .setMarginTop(10f)
+        document.add(subheading)
+        
+        gaps.forEach { gap ->
+            val item = Paragraph("• ${gap.type.uppercase()} (${gap.criticality.name})")
+                .setFontSize(10f)
+                .setMarginLeft(30f)
+                .setMarginBottom(3f)
+            document.add(item)
+        }
+    }
+
+    private fun addLevelerTimelineAnomalies(document: Document, anomalies: List<LevelerEngine.TimelineAnomaly>) {
+        val subheading = Paragraph("B4: TIMELINE MANIPULATION DETECTION")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setBold()
+            .setMarginTop(10f)
+        document.add(subheading)
+        
+        anomalies.forEach { anomaly ->
+            val item = Paragraph("• ${anomaly.type.name} (Suspicion: ${String.format("%.0f", anomaly.suspicionScore * 100)}%)")
+                .setFontSize(10f)
+                .setMarginLeft(30f)
+                .setMarginBottom(3f)
+            document.add(item)
+        }
+    }
+
+    private fun addLevelerBehavioralPatterns(document: Document, patterns: List<LevelerEngine.DetectedBehavioralPattern>) {
+        val subheading = Paragraph("B5: BEHAVIORAL PATTERN RECOGNITION")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setBold()
+            .setMarginTop(10f)
+        document.add(subheading)
+        
+        patterns.forEach { pattern ->
+            val item = Paragraph("• ${pattern.type.name} (Match: ${String.format("%.0f", pattern.score * 100)}%)")
+                .setFontSize(10f)
+                .setMarginLeft(30f)
+                .setMarginBottom(3f)
+            document.add(item)
+        }
+    }
+
+    private fun addLevelerFinancialDiscrepancies(document: Document, discrepancies: List<LevelerEngine.FinancialDiscrepancy>) {
+        val subheading = Paragraph("B6: FINANCIAL TRANSACTION CORRELATION")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setBold()
+            .setMarginTop(10f)
+        document.add(subheading)
+        
+        discrepancies.forEach { discrepancy ->
+            val item = Paragraph("• ${discrepancy.type.name}: ${discrepancy.description}")
+                .setFontSize(10f)
+                .setMarginLeft(30f)
+                .setMarginBottom(3f)
+            document.add(item)
+        }
+    }
+
+    private fun addLevelerCommunicationPatterns(document: Document, patterns: List<LevelerEngine.CommunicationPattern>) {
+        val subheading = Paragraph("B7: COMMUNICATION PATTERN ANALYSIS")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setBold()
+            .setMarginTop(10f)
+        document.add(subheading)
+        
+        patterns.forEach { pattern ->
+            val item = Paragraph("• ${pattern.type.name} (Score: ${String.format("%.0f", pattern.score * 100)}%)")
+                .setFontSize(10f)
+                .setMarginLeft(30f)
+                .setMarginBottom(3f)
+            document.add(item)
+        }
+    }
+
+    private fun addLevelerJurisdictionalCompliance(document: Document, compliance: List<LevelerEngine.JurisdictionalCompliance>) {
+        val subheading = Paragraph("B8: JURISDICTIONAL COMPLIANCE CHECK")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setBold()
+            .setMarginTop(10f)
+        document.add(subheading)
+        
+        compliance.forEach { comp ->
+            val status = if (comp.isCompliant) "✓ COMPLIANT" else "⚠ NON-COMPLIANT"
+            val item = Paragraph("• ${comp.jurisdiction.name}: $status (${String.format("%.1f", comp.score)}%)")
+                .setFontSize(10f)
+                .setMarginLeft(30f)
+                .setMarginBottom(3f)
+            document.add(item)
+        }
+    }
+
+    private fun addLevelerRecommendations(document: Document, recommendations: List<String>) {
+        val subheading = Paragraph("FORENSIC RECOMMENDATIONS")
+            .setFontSize(14f)
+            .setFontColor(brandBlue)
+            .setBold()
+            .setMarginTop(15f)
+        document.add(subheading)
+        
+        recommendations.forEachIndexed { index, recommendation ->
+            val item = Paragraph("${index + 1}. $recommendation")
+                .setFontSize(10f)
+                .setMarginLeft(20f)
+                .setMarginBottom(5f)
+            document.add(item)
+        }
+    }
+
 
     /**
      * Add watermark to PDF
