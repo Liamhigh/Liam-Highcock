@@ -27,7 +27,8 @@ class RuleEngine(private val context: Context) {
             
             parseVerumRules(jsonString)
         } catch (e: Exception) {
-            android.util.Log.e("RuleEngine", "Failed to load verum_rules.json", e)
+            // Log error but return default rules as fallback
+            logError("Failed to load verum_rules.json: ${e.message}")
             getDefaultVerumRules()
         }
     }
@@ -43,9 +44,21 @@ class RuleEngine(private val context: Context) {
             
             parseLevelerRules(jsonString)
         } catch (e: Exception) {
-            android.util.Log.e("RuleEngine", "Failed to load leveler_rules.json", e)
+            logError("Failed to load leveler_rules.json: ${e.message}")
             getDefaultLevelerRules()
         }
+    }
+    
+    /**
+     * Log error message (uses Android Log in implementation, but abstracted)
+     */
+    private fun logError(message: String) {
+        // Using Android Log here, but could be replaced with a logging interface
+        android.util.Log.e(TAG, message)
+    }
+    
+    companion object {
+        private const val TAG = "RuleEngine"
     }
     
     /**

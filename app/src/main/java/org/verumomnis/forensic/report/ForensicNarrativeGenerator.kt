@@ -87,14 +87,14 @@ class ForensicNarrativeGenerator {
             appendLine("│ B9: INTEGRITY INDEX SCORE")
             appendLine("├─────────────────────────────────────────────────────────────────┤")
             appendLine("│ SCORE: ${String.format("%.2f", result.integrityScore)}/100")
-            val category = when {
-                result.integrityScore >= 90 -> "EXCELLENT ✓"
-                result.integrityScore >= 70 -> "GOOD"
-                result.integrityScore >= 50 -> "FAIR"
-                result.integrityScore >= 25 -> "POOR ⚠"
-                else -> "COMPROMISED ⚠⚠"
+            val category = ForensicConstants.IntegrityScore.getCategory(result.integrityScore)
+            val statusIcon = when (category) {
+                "EXCELLENT" -> "✓"
+                "GOOD" -> ""
+                "FAIR" -> ""
+                else -> "⚠"
             }
-            appendLine("│ CATEGORY: $category")
+            appendLine("│ CATEGORY: $category $statusIcon")
             appendLine("│ CONFIDENCE: ${String.format("%.1f", result.confidence * 100)}%")
             appendLine("└─────────────────────────────────────────────────────────────────┘")
             appendLine()

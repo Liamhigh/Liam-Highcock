@@ -193,10 +193,11 @@ class ForensicPdfGenerator(private val context: Context) {
         
         // Integrity Badge
         val integrityScore = levelerResult.integrityScore
-        val badgeColor = when {
-            integrityScore >= 90 -> successGreen
-            integrityScore >= 70 -> brandBlue
-            integrityScore >= 50 -> warningOrange
+        val category = ForensicConstants.IntegrityScore.getCategory(integrityScore)
+        val badgeColor = when (category) {
+            "EXCELLENT" -> successGreen
+            "GOOD" -> brandBlue
+            "FAIR" -> warningOrange
             else -> alertRed
         }
         
@@ -324,17 +325,11 @@ class ForensicPdfGenerator(private val context: Context) {
         document.add(subheading)
         
         val score = String.format("%.2f", result.integrityScore)
-        val category = when {
-            result.integrityScore >= 90 -> "EXCELLENT"
-            result.integrityScore >= 70 -> "GOOD"
-            result.integrityScore >= 50 -> "FAIR"
-            result.integrityScore >= 25 -> "POOR"
-            else -> "COMPROMISED"
-        }
+        val category = ForensicConstants.IntegrityScore.getCategory(result.integrityScore)
         
-        val scoreColor = when {
-            result.integrityScore >= 70 -> successGreen
-            result.integrityScore >= 50 -> warningOrange
+        val scoreColor = when (category) {
+            "EXCELLENT", "GOOD" -> successGreen
+            "FAIR" -> warningOrange
             else -> alertRed
         }
         
