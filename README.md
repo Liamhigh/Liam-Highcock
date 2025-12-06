@@ -1,58 +1,170 @@
-# Verum Omnis Forensic Engine
+# Forensic Evidence App
 
-![Verum Omnis Logo](main-logo.png)
+## Overview
 
-**Offline Android Forensic Engine with Cryptographic Sealing**
+This project is an offline-first Android application designed to let a user create a case, collect evidence, process it locally through a simple forensic workflow, and generate a final report. The app does not rely on external servers. All data is stored and processed on the device.
 
-An Android application for collecting, sealing, and reporting forensic evidence in accordance with the Verum Omnis Constitutional Governance Layer.
+The README describes what the app is supposed to do, so that Copilot or any developer can understand the intended behaviour when generating or updating code.
 
-## 🎯 Features
+## Core Purpose
 
-- 📸 **Document Capture** - Camera-based evidence collection
-- 🔐 **Cryptographic Sealing** - SHA-512 hashing with HMAC-SHA512 for tamper detection
-- 📍 **GPS Location Capture** - Automatic geolocation of evidence at collection time
-- 📄 **AI-Readable PDF Reports** - Structured forensic narratives following legal admissibility standards
-- 🔒 **Offline-First Design** - No cloud logging, no telemetry, airgap ready
-- 📊 **B1-B9 Leveler Compliance** - Complete contradiction detection and integrity scoring
+The app follows a basic forensic workflow:
 
-## 🏛️ Constitutional Governance
+1. Create a new case
+2. Add evidence (text, images, audio, video, documents)
+3. Store evidence locally
+4. Run simple analysis (hashing, metadata extraction, basic checks)
+5. Generate a final report
+6. Allow the user to view or export that report
 
-This application operates under the **Verum Omnis Constitution Mode**, which enforces:
+The app is meant to act as a self-contained mobile evidence toolkit.
 
-### Core Principles
+## Main Features
 
-| Principle | Description |
-|-----------|-------------|
-| **Truth** | Factual accuracy and verifiable evidence |
-| **Fairness** | Protection of vulnerable parties |
-| **Human Rights** | Dignity, equality, and agency |
-| **Non-Extraction** | No sensitive data transmission |
-| **Human Authority** | AI assists, never overrides |
-| **Integrity** | No manipulation or bias |
-| **Independence** | No external influence on outputs |
+### 1. Case Creation
 
-### Forensic Standards
+- User enters a case name
+- App generates a unique case ID
+- Case folder is created on device storage
+- Metadata file (case.json) is created
 
-| Standard | Value |
-|----------|-------|
-| Hash Standard | SHA-512 |
-| PDF Standard | PDF 1.7 |
-| Watermark | VERUM OMNIS FORENSIC SEAL |
-| QR Code Inclusion | Yes |
-| Tamper Detection | Mandatory |
-| Admissibility Standard | Legal-grade |
+### 2. Evidence Capture
 
-### Security
+The user may add any of the following:
 
-| Feature | Status |
-|---------|--------|
-| Offline First | ✅ True |
-| Stateless | ✅ True |
-| No Cloud Logging | ✅ True |
-| No Telemetry | ✅ True |
-| Airgap Ready | ✅ True |
+- Text notes
+- Photos (via camera or gallery)
+- Audio recordings
+- Video recordings
+- Imported documents
 
-## 🚀 Building
+Evidence is stored in:
+```
+/cases/{caseId}/evidence/
+```
+
+Each item includes:
+- Evidence ID
+- Type (text/image/audio/video/file)
+- Timestamp
+- Hash (SHA-512)
+- File path
+
+### 3. Local Forensic Processing
+
+The app runs basic offline processing:
+
+- File hashing (SHA-512)
+- Timestamp extraction
+- Optional GPS tagging (if user allows)
+- Basic text summary or metadata extraction
+
+This produces a structured analysis result used in the report.
+
+### 4. Report Generation
+
+The app produces a final case report that contains:
+
+- Case name and metadata
+- List of evidence items
+- Evidence hashes
+- Basic summaries
+- A single combined report file
+
+Reports are saved under:
+```
+/cases/{caseId}/reports/
+```
+
+### 5. Report Viewer
+
+The user can open the generated report inside the app.
+
+## Offline-First Design
+
+- No data leaves the device
+- No cloud uploads
+- No external services
+- Fully self-contained mobile workflow
+
+This allows the app to operate in low-connectivity or secure environments.
+
+## Main Activities / Screens
+
+### MainActivity
+- Lets the user create a new case
+- Navigates to CaseDetail screen
+
+### CaseDetailActivity (or screen)
+- Shows case metadata
+- Shows list of added evidence
+- Buttons to add evidence
+- Button to generate the final report
+
+### ScannerActivity
+- Captures photos or scanned documents
+- Saves them into the case folder
+
+### AudioRecorderActivity
+- Records a short audio clip
+- Saves the audio file and computes a hash
+
+### VideoRecorderActivity
+- Records a short video clip
+- Saves the file to evidence folder
+
+### ReportViewerActivity
+- Loads and displays the generated report
+
+## Required Logic (High-Level)
+
+### Case Management
+- Create folder
+- Save case metadata
+- Maintain list of evidence
+
+### Evidence Handling
+- Save files
+- Generate SHA-512 hash
+- Append item to the case's evidence list
+
+### Processing
+- Run analysis
+- Produce a structured result object
+
+### Report Generation
+- Build report text or PDF
+- Save it to /reports/
+- Show it in the viewer screen
+
+## Technology Stack (Generic)
+
+- Kotlin
+- Android SDK
+- CameraX (for photos)
+- MediaRecorder (audio/video)
+- Coroutines (for background work)
+- File I/O (for local storage)
+- Optional: simple PDF generator
+
+## App Flow Summary
+
+```
+Start
+  ↓
+MainActivity → create case
+  ↓
+CaseDetailActivity → add evidence (image/audio/video/text/file)
+  ↓
+Processing Engine → hashing + metadata
+  ↓
+Generate Report
+  ↓
+ReportViewerActivity → user views or exports report
+  ✔
+```
+
+## Building
 
 ### Prerequisites
 
@@ -73,154 +185,3 @@ This application operates under the **Verum Omnis Constitution Mode**, which enf
 ```
 
 The APK will be output to `app/build/outputs/apk/`
-
-### Download Signed APKs from GitHub Actions
-
-You can download pre-built signed APKs directly from GitHub Actions:
-
-1. Go to the **Actions** tab in this repository
-2. Click on **Android CI/CD** workflow
-3. Select a successful workflow run
-4. Download the artifacts:
-   - **verum-omnis-forensic-debug** - Debug APK (automatically signed with debug keystore)
-   - **verum-omnis-forensic-release-debug-signed** - Release APK signed with debug keystore (for testing)
-   - **verum-omnis-forensic-release-production** - Production release APK (when production keystore secrets are configured)
-
-#### Configuring Production APK Signing
-
-To enable production-signed release APKs, you need to configure the following GitHub repository secrets:
-
-1. **Generate a keystore** (if you don't have one):
-   ```bash
-   keytool -genkeypair -v \
-     -keystore my-release-key.keystore \
-     -storepass YOUR_STORE_PASSWORD \
-     -alias your-key-alias \
-     -keypass YOUR_KEY_PASSWORD \
-     -keyalg RSA \
-     -keysize 2048 \
-     -validity 10000 \
-     -dname "CN=Your Name, OU=Your Unit, O=Your Org, L=City, S=State, C=XX"
-   ```
-
-2. **Encode the keystore to Base64**:
-   ```bash
-   base64 -i my-release-key.keystore | pbcopy  # macOS
-   # or
-   base64 my-release-key.keystore > keystore_base64.txt  # Linux
-   ```
-
-3. **Add the following secrets** in GitHub (Settings → Secrets and variables → Actions → New repository secret):
-   | Secret Name | Description |
-   |-------------|-------------|
-   | `KEYSTORE_BASE64` | Base64-encoded keystore file content |
-   | `KEYSTORE_PASSWORD` | Password for the keystore |
-   | `KEY_ALIAS` | Alias of the key in the keystore |
-   | `KEY_PASSWORD` | Password for the key |
-
-Once configured, production-signed APKs will be automatically generated on pushes to the `main` branch.
-
-#### Manual Workflow Trigger
-
-You can also manually trigger a build to generate APKs:
-
-1. Go to **Actions** → **Android CI/CD**
-2. Click **Run workflow**
-3. Select the build type (debug, release, or both)
-4. Click **Run workflow**
-5. Once complete, download the APK artifacts
-
-#### Installing on Your Phone
-
-1. Download the APK file from the workflow artifacts
-2. On your Android phone, enable **Install from Unknown Sources** in Settings
-3. Transfer the APK to your phone (via USB, email, or cloud storage)
-4. Tap the APK file to install
-
-## 📱 Usage
-
-1. **Create a Case** - Start by creating a new forensic case with a descriptive name
-2. **Add Evidence** - Use the scanner to capture documents, photos, or text notes
-3. **Seal Evidence** - Each piece of evidence is cryptographically sealed with SHA-512
-4. **Generate Report** - Create a forensic PDF report with full evidence chain
-5. **View/Share Reports** - Access and share sealed forensic reports
-
-### Evidence Types
-
-- 📄 Documents (scanned)
-- 📷 Photos (captured)
-- 📝 Text (notes and observations)
-- 🎤 Audio (coming soon)
-- 🎬 Video (coming soon)
-
-## 🔍 B1-B9 Leveler Engine
-
-The Leveler Engine provides comprehensive evidence analysis:
-
-| Code | Feature | Description |
-|------|---------|-------------|
-| B1 | Event Chronology | Timeline reconstruction from evidence |
-| B2 | Contradiction Detection | Statement and evidence conflict identification |
-| B3 | Evidence Gap Analysis | Missing evidence detection |
-| B4 | Timeline Manipulation | Backdating and edit detection |
-| B5 | Behavioral Patterns | Evasion, gaslighting, concealment detection |
-| B6 | Financial Correlation | Transaction vs statement verification |
-| B7 | Communication Analysis | Response patterns and deletions |
-| B8 | Jurisdictional Compliance | UAE, UK, EU, US law checking |
-| B9 | Integrity Scoring | 0-100 score with breakdown |
-
-## 📁 Project Structure
-
-```
-app/src/main/java/org/verumomnis/forensic/
-├── core/                    # Core forensic engine
-│   ├── ForensicEngine.kt
-│   ├── ForensicEvidence.kt
-│   └── VerumOmnisApplication.kt
-├── crypto/                  # Cryptographic sealing
-│   └── CryptographicSealingEngine.kt
-├── leveler/                 # B1-B9 Leveler Engine
-│   └── LevelerEngine.kt
-├── location/                # GPS location services
-│   └── ForensicLocationService.kt
-├── pdf/                     # PDF report generation
-│   └── ForensicPdfGenerator.kt
-├── report/                  # Narrative generation
-│   └── ForensicNarrativeGenerator.kt
-└── ui/                      # User interface
-    ├── MainActivity.kt
-    ├── ScannerActivity.kt
-    ├── CaseDetailActivity.kt
-    └── ReportViewerActivity.kt
-```
-
-## 🛡️ Security Considerations
-
-- All evidence is cryptographically sealed at capture time
-- SHA-512 hashes ensure content integrity verification
-- HMAC-SHA512 provides tamper-proof sealing
-- No data is transmitted to external servers
-- All processing happens locally on device
-- APK signature is included in reports for chain of trust
-
-## 📋 Verification
-
-Each forensic report includes:
-
-1. **QR Code** - Contains report metadata and verification hashes
-2. **APK Hash** - SHA-512 of the signing certificate
-3. **Evidence Hashes** - Individual SHA-512 for each evidence item
-4. **Case Integrity Hash** - Combined hash of all evidence
-5. **Seal Hashes** - HMAC-SHA512 tamper-proof seals
-
-## 📜 License
-
-Copyright © 2024 Verum Global Foundation
-
-## 👤 Creator
-
-**Liam Highcock**
-
----
-
-*AI FORENSICS FOR TRUTH*
