@@ -1,12 +1,150 @@
-# Verum Forensic App — Developer Specification for Copilot
+# VERUM OMNIS FORENSIC APP & ENGINE SPECIFICATION — FOR COPILOT IMPLEMENTATION
 
-**Authoritative Build + Wiring Instructions**
+---
 
-## Purpose of This Document
+## APP PURPOSE
 
-This document tells Copilot exactly how the app is supposed to function, how the forensic engine works, and how to assemble all modules into a fully working Android APK.
+Build an Android application that:
 
-This repo contains ALL forensic logic already — contradiction engine, timeline reconstruction, reporting, hashing, evidence handling — but the UI and module wiring must be completed.
+1. Accepts user evidence (text, OCR from images, PDFs, notes, transcripts).
+2. Sends all evidence into a fixed, unchanging forensic engine.
+3. Processes evidence through the same 12 forensic steps every time.
+4. Outputs a structured forensic report in plain text.
+
+**The engine is deterministic. No AI. No variation. Same logic path for every case.**
+
+---
+
+## GLOBAL APP BEHAVIOR
+
+- **ANY evidence loaded → passes through engine → engine produces report.**
+- No branching logic. No special handling.
+- All evidence follows the identical forensic pipeline.
+
+---
+
+## ENGINE ARCHITECTURE
+
+**Package:** `org.verumomnis.engine`
+
+**Components (each has one job):**
+
+1. EvidenceIngestor
+2. NarrativeBuilder
+3. SubjectClassifier
+4. ContradictionDetector
+5. OmissionDetector
+6. BehaviorAnalyzer
+7. KeywordScanner
+8. SeverityScorer
+9. DishonestyCalculator
+10. LiabilityExtractor
+11. ActionRecommender
+12. ReportBuilder
+
+---
+
+## FORENSIC PIPELINE (EXACT ORDER)
+
+### STEP 1 — INGESTION
+
+- Collect all evidence → convert to plain text.
+- **Output:** `List<String> rawSentences`
+
+### STEP 2 — NARRATIVE BUILD
+
+- Merge text into single narrative, preserve timestamps.
+- **Output:** `List<Sentence> narrativeList`
+
+### STEP 3 — SUBJECT CLASSIFICATION
+
+Classify each sentence into zero or more of:
+
+- ShareholderOppression
+- BreachOfFiduciaryDuty
+- Cybercrime
+- FraudulentEvidence
+- EmotionalExploitation
+
+**Output:** `List<Category>` per sentence
+
+### STEP 4 — CONTRADICTION DETECTION
+
+- Compare sentences vs. sentences, sentences vs. evidence files.
+- Mark contradictions → severity HIGH.
+
+### STEP 5 — OMISSION DETECTION
+
+- Identify missing context, hidden details, deletions, cropped screenshots, incomplete timelines.
+- Mark omissions → severity MEDIUM or HIGH.
+
+### STEP 6 — BEHAVIORAL ANALYSIS
+
+Scan each sentence for:
+
+- Evasion
+- Gaslighting
+- Blame-shifting
+- Selective disclosure
+- Refusal to answer
+- Justification loops
+- Unauthorized access/control
+
+**Output:** `List<BehaviorFlag>` per sentence
+
+### STEP 7 — KEYWORD SCANNING
+
+Scan for red-flag keywords:
+- "I don't recall"
+- "I was advised"
+- "My understanding is"
+- "I thought it was okay"
+- "I didn't mean to"
+- "I was protecting"
+- Financial terms: "write-off", "transfer", "loan", "advance"
+
+### STEP 8 — SEVERITY SCORING
+
+Calculate per-sentence severity (0-100):
+- Contradiction = +30
+- Omission = +20
+- Behavioral flag = +15
+- Keyword match = +10
+
+### STEP 9 — DISHONESTY CALCULATION
+
+Aggregate total dishonesty score across all sentences.
+**Range:** 0 (clean) to 100 (severely dishonest)
+
+### STEP 10 — LIABILITY EXTRACTION
+
+Extract sentences with legal liability implications:
+- Breach of duty
+- Unauthorized transactions
+- Falsified evidence
+- Intentional concealment
+
+### STEP 11 — ACTION RECOMMENDATION
+
+Based on total score:
+- 0-30: Monitor
+- 31-60: Investigate further
+- 61-80: Legal consultation recommended
+- 81-100: Urgent legal action required
+
+### STEP 12 — REPORT BUILDING
+
+Compile final forensic report with:
+1. Executive summary
+2. Dishonesty score
+3. Flagged sentences (sorted by severity)
+4. Contradictions list
+5. Omissions list
+6. Behavioral patterns
+7. Liability statements
+8. Recommended actions
+
+---
 
 **Copilot must NOT simplify any forensic logic.**
 
@@ -14,276 +152,228 @@ This repo contains ALL forensic logic already — contradiction engine, timeline
 
 ---
 
-## 1. App Overview
+## ANDROID APP STRUCTURE
 
-The Verum Forensic App is a local-only, offline-first forensic tool that allows a user to:
+### Required Activities:
 
-1. **Create a Forensic Case**
-2. **Add Evidence**
-   - Text notes
-   - Images (scan or gallery)
-   - Documents
-   - Audio
-   - Video
-3. **Run the Forensic Engine**
-   - Contradiction analysis
-   - Timeline reconstruction
-   - Behavioural/linguistic metrics
-   - SHA-512 hashing
-   - Evidence indexing
-4. **Generate a Sealed Report**
-5. **View and Export the Report**
+1. **MainActivity**
+   - Create new case
+   - Enter case name
+   - Generate UUID
+   - Navigate to CaseDetailActivity
 
-**All forensic processing is done on-device only.**
+2. **CaseDetailActivity**
+   - Display case metadata
+   - List all evidence items
+   - Buttons: Add Text, Add Image, Add PDF, Generate Report
+   - When "Generate Report" pressed → run engine → display report
 
----
+3. **ScannerActivity**
+   - Capture photo via CameraX
+   - Run OCR if enabled
+   - Save to evidence folder
+   - Add to case
 
-## 2. Architecture Requirements (MANDATORY)
-
-The repo uses a **single-module structure** with organized packages:
-
-- `/app` — Android entry point
-- `/core` — data models (Case, Evidence, ForensicEngine)
-- `/crypto` — cryptographic sealing (SHA-512, HMAC-SHA512)
-- `/leveler` — B1-B9 Leveler Engine (contradiction analysis, integrity scoring)
-- `/report` — forensic narrative generation
-- `/pdf` — PDF report generation
-- `/location` — GPS location services
-- `/tax` — tax return analysis engine
-- `/database` — local data persistence
-- `/ui` — Activities and UI components
-
-### Copilot must:
-
-✔ Ensure all packages are properly wired together
-✔ Use existing classes from each package
-✔ Ensure Android Studio can build a complete APK
-✔ NOT create duplicate logic that already exists
+4. **ReportViewerActivity**
+   - Display final forensic report
+   - Show all 12 pipeline steps
+   - Export option
 
 ---
 
-## 3. Required Activities (Copilot must generate these if missing)
+## DATA MODELS
 
-### MainActivity
-
-- User types case name
-- Press "Create Case"
-- App generates UUID
-- Creates folder structure:
-  ```
-  /cases/{CASE_ID}/
-      case.json
-      evidence/
-      reports/
-  ```
-- Navigates to `CaseDetailActivity`
-
----
-
-### CaseDetailActivity
-
-Shows:
-- Case metadata
-- Evidence list
-
-Buttons:
-- Add Text Note
-- Add Image
-- Add Audio
-- Add Video
-- **Generate Report**
-
-When the user taps "Generate Report":
-1. Collect all evidence
-2. Call `ForensicEngine.process(case)`
-3. Run B1-B9 Leveler analysis
-4. Generate cryptographic seals (SHA-512, HMAC-SHA512)
-5. Write PDF report to `/cases/{CASE_ID}/reports/`
-6. Navigate to `ReportViewerActivity`
-
----
-
-### ScannerActivity
-
-- Capture image using CameraX
-- Save to `/cases/{CASE_ID}/evidence/IMG_xxx.jpg`
-- Compute SHA-512 hash
-- Update case model
-
----
-
-### AudioRecorderActivity
-
-- Record audio using MediaRecorder
-- Save to `/cases/{CASE_ID}/evidence/AUD_xxx.wav`
-- Compute SHA-512 hash
-
----
-
-### VideoRecorderActivity
-
-- Record video
-- Save to `/cases/{CASE_ID}/evidence/VID_xxx.mp4`
-- Compute SHA-512 hash
-
----
-
-### ReportViewerActivity
-
-Load report PDF and display forensic sections:
-- **Contradictions** (from B2 Leveler)
-- **Timeline** (from B1 Leveler)
-- **Narrative** (from ForensicNarrativeGenerator)
-- **Evidence Index**
-- **SHA-512 Seals**
-- **B9 Integrity Score**
-
-Provide "Export" button
-
----
-
-## 4. Required Forensic Engine Behaviour
-
-**Copilot must NOT replace this logic.**
-Logic must be read from existing classes in `/core`, `/crypto`, `/leveler`, `/report`, `/pdf`.
-
-### The Forensic Engine must:
-
-1. Load all evidence from case
-2. Compute SHA-512 hashes per item
-3. Run **B1-B9 Leveler Engine**:
-   - B1: Event Chronology Reconstruction
-   - B2: Contradiction Detection Matrix
-   - B3: Missing Evidence Gap Analysis
-   - B4: Timeline Manipulation Detection
-   - B5: Behavioral Pattern Recognition
-   - B6: Financial Transaction Correlation
-   - B7: Communication Pattern Analysis
-   - B8: Jurisdictional Compliance Check
-   - B9: Integrity Index Scoring (0-100)
-4. Generate forensic narrative using `ForensicNarrativeGenerator`
-5. Compute HMAC-SHA512 seals using `CryptographicSealingEngine`
-6. Produce PDF report using `ForensicPdfGenerator`
-7. Include QR code with verification data
-
-**Use existing classes:**
-- `ForensicEngine` (core)
-- `CryptographicSealingEngine` (crypto)
-- `LevelerEngine` (leveler)
-- `ForensicNarrativeGenerator` (report)
-- `ForensicPdfGenerator` (pdf)
-
----
-
-## 5. Data Model Rules
-
-### Case object must contain:
+### ForensicCase
 
 ```kotlin
 data class ForensicCase(
     val id: String,              // UUID
     val name: String,
-    val createdAt: Long,         // timestamp
-    val evidence: List<ForensicEvidence>,
+    val createdAt: Long,
+    val evidence: List<Evidence>,
     val reportPath: String?
 )
 ```
 
-### Evidence object must contain:
+### Evidence
 
 ```kotlin
-data class ForensicEvidence(
+data class Evidence(
     val id: String,
-    val type: EvidenceType,      // TEXT, IMAGE, AUDIO, VIDEO, DOCUMENT
+    val type: EvidenceType,      // TEXT, IMAGE, PDF, AUDIO, VIDEO
     val timestamp: Long,
     val filePath: String,
     val contentHash: String,     // SHA-512
-    val metadata: Map<String, Any>
+    val rawText: String          // extracted/OCR text
 )
 ```
 
-### Report must include:
+### Sentence
 
-- Forensic narrative summary
-- B1-B9 Leveler analysis results
-- Timeline of events
-- Contradiction matrix
-- Evidence index with SHA-512 hashes
-- Final case integrity hash (HMAC-SHA512)
-- QR code for verification
-- APK signature hash
-
-**Copilot must use existing data models from `/core` package.**
-
----
-
-## 6. File Storage Rules
-
-Everything must be stored locally in app-private storage:
-
-```
-/Android/data/org.verumomnis.forensic/files/cases/{CASE_ID}/
-    case.json
-    evidence/
-        IMG_xxx.jpg
-        AUD_xxx.wav
-        VID_xxx.mp4
-        DOC_xxx.pdf
-    reports/
-        forensic_report_{timestamp}.pdf
+```kotlin
+data class Sentence(
+    val id: Int,
+    val text: String,
+    val timestamp: Long?,
+    val categories: List<Category>,
+    val behaviorFlags: List<BehaviorFlag>,
+    val severityScore: Int,
+    val isContradiction: Boolean,
+    val isOmission: Boolean,
+    val keywords: List<String>
+)
 ```
 
-**No cloud storage. No network calls. Everything offline.**
+### ForensicReport
+
+```kotlin
+data class ForensicReport(
+    val caseId: String,
+    val generatedAt: Long,
+    val dishonestyScore: Int,    // 0-100
+    val sentences: List<Sentence>,
+    val contradictions: List<String>,
+    val omissions: List<String>,
+    val behaviorPatterns: Map<String, Int>,
+    val liabilityStatements: List<String>,
+    val recommendation: String,
+    val summary: String
+)
+```
 
 ---
 
-## 7. Cryptographic Requirements
+## FILE STORAGE
 
-### All evidence must be cryptographically sealed:
+All data stored in app-private directory:
 
-1. **SHA-512** for content hashing
-2. **HMAC-SHA512** for tamper-proof sealing
-3. **QR Code** with verification metadata
-4. **APK Signature Hash** for chain of trust
-
-Use `CryptographicSealingEngine` class from `/crypto` package.
-
-**DO NOT implement custom crypto. Use existing implementation.**
-
----
-
-## 8. Build Requirements (Critical)
-
-The final output must be:
-
-✔ A complete Android Studio project
-✔ That syncs with Gradle without errors
-✔ That compiles without errors
-✔ That produces a working debug APK
-✔ That produces a working release APK (with signing)
-✔ Using ALL logic already present in the repository
-✔ Wiring together existing forensic engine components
-
-### Copilot MUST NOT:
-
-❌ Delete working forensic logic
-❌ Replace existing engine code
-❌ Simplify B1-B9 Leveler analysis
-❌ Remove cryptographic sealing
-❌ Convert app to cloud architecture
-❌ Add network calls
-❌ Add Firebase or external dependencies
+```
+/Android/data/org.verumomnis.forensic/files/
+    cases/
+        {CASE_ID}/
+            case.json
+            evidence/
+                text_001.txt
+                image_002.jpg
+                pdf_003.pdf
+            reports/
+                report_{timestamp}.txt
+```
 
 ---
 
-## 9. Testing Requirements
+## ENGINE IMPLEMENTATION REQUIREMENTS
 
-Ensure these work:
+### Each component MUST:
 
-1. Create a case → saves to database/filesystem
-2. Add evidence (text, image, audio, video) → files saved, hashed
-3. Generate report → B1-B9 analysis runs, PDF created
-4. View report → PDF displays correctly
-5. Export report → file can be shared
+1. **EvidenceIngestor**
+   - Accept all evidence types
+   - Convert to plain text
+   - Return `List<String>`
 
-**The goal is a fully functional offline forensic app that builds into a deployable APK.**
+2. **NarrativeBuilder**
+   - Merge all text preserving timestamps
+   - Split into sentences
+   - Return `List<Sentence>`
+
+3. **SubjectClassifier**
+   - Classify each sentence
+   - Use keyword matching for categories
+   - Return updated sentences with categories
+
+4. **ContradictionDetector**
+   - Compare all sentence pairs
+   - Flag contradictions
+   - Mark severity HIGH
+
+5. **OmissionDetector**
+   - Detect missing context
+   - Identify deletions, cropping
+   - Mark severity MEDIUM/HIGH
+
+6. **BehaviorAnalyzer**
+   - Pattern match for evasion, gaslighting, etc.
+   - Flag behavioral issues
+   - Add to sentence metadata
+
+7. **KeywordScanner**
+   - Scan predefined keyword list
+   - Mark matches
+   - Add to sentence metadata
+
+8. **SeverityScorer**
+   - Calculate per-sentence score
+   - Use fixed formula
+   - Return 0-100
+
+9. **DishonestyCalculator**
+   - Aggregate all sentence scores
+   - Calculate case-level dishonesty
+   - Return 0-100
+
+10. **LiabilityExtractor**
+    - Filter sentences with legal implications
+    - Return liability list
+
+11. **ActionRecommender**
+    - Map score to recommendation
+    - Use fixed thresholds
+    - Return action string
+
+12. **ReportBuilder**
+    - Compile all outputs
+    - Format as structured text
+    - Return final report
+
+---
+
+## TECHNICAL REQUIREMENTS
+
+- **Language:** Kotlin
+- **Android SDK:** 34
+- **Architecture:** Single-module with organized packages
+- **Storage:** Local file I/O only
+- **Processing:** On-device only
+- **No networking**
+- **No cloud integration**
+- **No AI/ML models** (deterministic rules only)
+- **No external APIs**
+
+---
+
+## BUILD REQUIREMENTS
+
+The app must:
+
+✅ Compile without errors in Android Studio
+✅ Sync with Gradle successfully
+✅ Build debug APK: `./gradlew assembleDebug`
+✅ Build release APK: `./gradlew assembleRelease`
+✅ Run on Android 7.0+ (API 24+)
+✅ Function completely offline
+
+---
+
+## CONSTRAINTS FOR COPILOT
+
+### MUST DO:
+
+- Wire all 12 engine components in exact order
+- Use deterministic logic only (no AI)
+- Follow the exact pipeline steps
+- Preserve all existing forensic logic
+- Build a working APK
+
+### MUST NOT DO:
+
+- Simplify or remove any engine components
+- Add AI/ML processing
+- Add cloud features
+- Add networking
+- Skip any pipeline steps
+- Change the order of operations
+- Remove existing classes
+
+---
+
+**THE GOAL:** A fully functional, deterministic, offline forensic analysis app that processes all evidence through the same 12-step pipeline every time.
