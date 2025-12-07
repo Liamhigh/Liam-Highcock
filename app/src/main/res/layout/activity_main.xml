@@ -82,6 +82,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/header" />
 
+    <!-- Contradiction Engine Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnContradictionEngine"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Contradiction Engine"
+        android:textColor="#FFFFFF"
+        app:backgroundTint="#F44336"
+        android:layout_marginEnd="8dp"
+        app:layout_constraintEnd_toStartOf="@id/btnCreateCase"
+        app:layout_constraintTop_toTopOf="@id/tvCaseCount"
+        app:layout_constraintBottom_toBottomOf="@id/tvCaseCount" />
+
     <!-- Create Case Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCreateCase"
