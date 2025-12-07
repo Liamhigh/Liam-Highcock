@@ -91,6 +91,11 @@ class MainActivity : AppCompatActivity() {
             showCreateCaseDialog()
         }
 
+        // Contradiction Engine button
+        binding.btnContradictionEngine.setOnClickListener {
+            openContradictionEngine()
+        }
+
         // Setup RecyclerView for cases
         caseAdapter = CaseAdapter(
             onCaseClick = { caseId -> openCaseDetail(caseId) },
@@ -177,6 +182,11 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, CaseDetailActivity::class.java).apply {
             putExtra(CaseDetailActivity.EXTRA_CASE_ID, caseId)
         }
+        startActivity(intent)
+    }
+
+    private fun openContradictionEngine() {
+        val intent = Intent(this, ContradictionEngineActivity::class.java)
         startActivity(intent)
     }
 

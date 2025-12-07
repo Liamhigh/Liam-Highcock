@@ -50,6 +50,14 @@ class ReportViewerActivity : AppCompatActivity() {
 
         forensicEngine = ForensicEngine(this)
 
+        // Check if we have a simple text report (from contradiction engine)
+        val reportText = intent.getStringExtra("reportText")
+        if (reportText != null) {
+            displaySimpleReport(reportText)
+            setupUI()
+            return
+        }
+
         val caseId = intent.getStringExtra(EXTRA_CASE_ID)
         
         if (caseId != null) {
@@ -229,5 +237,24 @@ class ReportViewerActivity : AppCompatActivity() {
             .setMessage(message)
             .setPositiveButton("OK", null)
             .show()
+    }
+    
+    /**
+     * Display simple text report (from contradiction engine)
+     */
+    private fun displaySimpleReport(reportText: String) {
+        binding.tvReportId.text = "Contradiction Engine Report"
+        binding.tvCaseName.text = "Analysis Complete"
+        binding.tvGeneratedAt.text = "Generated: ${dateFormat.format(Date())}"
+        binding.tvIntegrityHash.text = ""
+        binding.tvApkHash.text = ""
+        binding.tvEvidenceSummary.text = ""
+        binding.tvNarrative.text = reportText
+        binding.tvQrData.text = ""
+        
+        // Hide buttons that don't apply to text reports
+        binding.btnShare.visibility = android.view.View.GONE
+        binding.btnSave.visibility = android.view.View.GONE
+        binding.btnVerify.visibility = android.view.View.GONE
     }
 }
